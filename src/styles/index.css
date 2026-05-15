@@ -1,0 +1,21 @@
+@import './fonts.css';
+@import './globals.css';
+@import './tailwind.css';
+@import './theme.css';
+/* src/styles/index.css */
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden; /* Prevent body scroll */
+}
+#root {
+  display: flex; /* THIS IS CRITICAL - #root must be a flex container */
+  flex-direction: column;
+}
+/* Ensure smooth scrolling inside scrollable areas */
+.overflow-y-auto {
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
+}
