@@ -1,10 +1,10 @@
 // Import React hooks for state management and optimization
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo, useEffect } from 'react';
 // Import icons from lucide-react for UI elements
 import {
-  Send, Upload, FileText, Sparkles,
-  MoreVertical, ChevronLeft, ChevronRight,
-  Trash2, Check, HelpCircle, Download, BookmarkPlus, ExternalLink, MessageSquare,
+  Upload, FileText,
+  ChevronLeft, ChevronRight,
+  Check, Download, BookmarkPlus, ExternalLink,
   AlignLeft
 } from 'lucide-react';
 // Import mock data and types for articles and chat messages
@@ -18,7 +18,8 @@ import SinglePDFViewer from './SinglePDFViewer';
 import AnalysisStagesDialog from './AnalysisStagesDialog';
 import ComparisonModal from './ComparisonModal';
 import AnalysisResultsModal from './AnalysisResultsModal';
-import GuidingQuestionsPanel from './GuidingQuestionsPanel';
+import GuidingQuestionsBlock from './GuidingQuestionsBlock';
+import StudentPerformancePanel from './StudentPerformancePanel';
 // Import toast notification library
 import { toast } from 'sonner';
 
@@ -54,7 +55,7 @@ export default function ChatInterface() {
   // State for chat messages and user input
   const [messages,        setMessages]        = useState<ChatMessage[]>(mockChatHistory);
   const [inputMessage,    setInputMessage]    = useState('');
-  const [isTyping,        setIsTyping]        = useState(false);
+  const [, setIsTyping]                       = useState(false);
 
   // State for uploaded files and upload progress
   const [uploadedFiles,   setUploadedFiles]   = useState<Article[]>(mockArticles);
@@ -64,6 +65,14 @@ export default function ChatInterface() {
   const [showStatsMenu,       setShowStatsMenu]       = useState(false);
   const [showUserMenu,        setShowUserMenu]        = useState(false);
   const [analysisType,        setAnalysisType]        = useState<'analyze' | 'compare' | null>(null);
+  // Track which article IDs have completed analysis. Lecturer sees student's history → all marked analyzed.
+  const [analyzedArticles,    setAnalyzedArticles]    = useState<Set<string>>(() =>
+    user?.role === 'lecturer' ? new Set(mockArticles.map(a => a.id)) : new Set()
+  );
+  // Articles that have been part of a Compare action
+  const [comparedArticles,    setComparedArticles]    = useState<Set<string>>(() =>
+    user?.role === 'lecturer' ? new Set([mockArticles[0]?.id, mockArticles[1]?.id].filter(Boolean) as string[]) : new Set()
+  );
   const [showComparisonModal, setShowComparisonModal] = useState(false);
 
   // State for article library search and sort
@@ -74,16 +83,7 @@ export default function ChatInterface() {
   const [showAnalysisModal,  setShowAnalysisModal]   = useState(false);
   const [singlePDFView,      setSinglePDFView]       = useState<Article | null>(null);
   const [activeExplainIdx,   setActiveExplainIdx]    = useState<number | null>(null);
-  const [showGuidingPanel,   setShowGuidingPanel]    = useState(false);
   const [expandedSummaryId,  setExpandedSummaryId]   = useState<string | null>(null);
-
-  // State for AI guiding questions and instructions
-  const [guidingQuestions, setGuidingQuestions] = useState<string[]>([
-    'What are the key methodological differences between these papers?',
-    'Which paper presents stronger empirical evidence?',
-    'Are there any conflicting findings that need to be addressed?',
-  ]);
-  const [guidingInstruction, setGuidingInstruction] = useState('');
 
   // State for saving analysis with custom name
   const [showSaveName,  setShowSaveName]  = useState(false);
@@ -220,6 +220,11 @@ export default function ChatInterface() {
   const handleSendMessage = (textOrEvent?: string | React.MouseEvent | React.KeyboardEvent) => {
     const text = typeof textOrEvent === 'string' ? textOrEvent : inputMessage;
     if (!text.trim()) return;
+    const hasAnalyzedSelected = Array.from(selectedArticles).some((id) => analyzedArticles.has(id));
+    if (!hasAnalyzedSelected) {
+      toast.error('Analyze at least one selected PDF before chatting');
+      return;
+    }
 
     const newMsg: ChatMessage = {
       id: `c${Date.now()}`,
@@ -294,6 +299,43 @@ export default function ChatInterface() {
     setSaveName('');
   };
 
+  // Per-article comprehension % derived from chat activity
+  const perArticleComprehension = useMemo(() => {
+    const map: Record<string, number> = {};
+    uploadedFiles.forEach((a) => {
+      if (!analyzedArticles.has(a.id)) { map[a.id] = 0; return; }
+      const cnt = messages.filter((m) => m.articleId === a.id).length;
+      map[a.id] = Math.min(100, cnt * 20);
+    });
+    return map;
+  }, [uploadedFiles, messages, analyzedArticles]);
+
+  // Count of currently selected PDFs that have been analyzed
+  const analyzedSelectedCount = useMemo(
+    () => Array.from(selectedArticles).filter((id) => analyzedArticles.has(id)).length,
+    [selectedArticles, analyzedArticles]
+  );
+  // Chat enabled only when at least one selected PDF has been analyzed
+  const canChat = analyzedSelectedCount > 0;
+  // Comprehension percent: 0 if no analyzed PDF selected, else scales with chat activity
+  const comprehensionPercent = useMemo(() => {
+    if (!canChat) return 0;
+    return Math.min(100, messages.length * 12);
+  }, [canChat, messages.length]);
+
+  // Fire celebration toast once when comprehension first hits 100%
+  const celebratedRef = useRef(false);
+  useEffect(() => {
+    if (comprehensionPercent === 100 && !celebratedRef.current) {
+      celebratedRef.current = true;
+      toast.success('100% comprehension reached!', {
+        description: 'Outstanding work — you mastered this material.',
+      });
+    } else if (comprehensionPercent < 100) {
+      celebratedRef.current = false;
+    }
+  }, [comprehensionPercent]);
+
   // Main component return - renders the chat interface UI
   return (
     <div className="flex flex-col h-screen overflow-hidden w-full bg-background animate-in fade-in duration-300 relative font-sans text-foreground">
@@ -351,29 +393,19 @@ export default function ChatInterface() {
           {!isLecturerView && (
             <>
               <button
-                onClick={() => setShowGuidingPanel(!showGuidingPanel)}
-                className={`hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all border ${
-                  showGuidingPanel
-                    ? 'bg-red-600 text-white border-red-600 hover:bg-red-700 hover:border-red-800 hover:shadow-md hover:scale-105'
-                    : 'bg-card text-foreground hover:bg-slate-100 hover:border-blue-300 hover:shadow-sm hover:scale-105 border-border'
-                }`}
-              >
-                <MessageSquare className="w-3.5 h-3.5" /> AI Prompts
-              </button>
-              <button
                 onClick={() => setShowSaveName(true)}
-                className="hidden sm:flex items-center gap-1.5 px-3 py-2 bg-card text-foreground hover:bg-emerald-50 hover:border-emerald-300 hover:shadow-sm hover:scale-105 rounded-lg text-xs font-bold transition-all border border-border"
+                className="hidden sm:flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 text-sm font-bold transition-all active:scale-95 border-slate-400 bg-slate-100 dark:bg-slate-800 text-foreground dark:border-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 hover:shadow-sm hover:scale-105"
               >
                 <BookmarkPlus className="w-3.5 h-3.5" /> Save
               </button>
               <button
                 onClick={handleExportChat}
-                className="hidden sm:flex items-center gap-1.5 px-3 py-2 bg-card text-foreground hover:bg-purple-50 hover:border-purple-300 hover:shadow-sm hover:scale-105 rounded-lg text-xs font-bold transition-all border border-border"
+                className="hidden sm:flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 text-sm font-bold transition-all active:scale-95 border-slate-400 bg-slate-100 dark:bg-slate-800 text-foreground dark:border-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 hover:shadow-sm hover:scale-105"
               >
                 <Download className="w-3.5 h-3.5" /> Export
               </button>
-              <label className="flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 text-sm font-bold transition-all active:scale-95 border-slate-400 bg-slate-100 dark:bg-slate-800 text-white dark:border-slate-500 cursor-pointer">
-                <Upload className="w-3.5 h-3.5 text-white" /> Upload PDF
+              <label className="flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 text-sm font-bold transition-all active:scale-95 border-slate-400 bg-slate-100 dark:bg-slate-800 text-foreground dark:border-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 hover:shadow-sm hover:scale-105 cursor-pointer">
+                <Upload className="w-3.5 h-3.5" /> Upload PDF
                 <input type="file" accept=".pdf" multiple onChange={handleFileUpload} className="hidden" />
               </label>
             </>
@@ -498,6 +530,16 @@ export default function ChatInterface() {
             </div>
           )}
 
+          {isLecturerView && (
+            <StudentPerformancePanel
+              studentName={studentId ? `Student ${studentId}` : 'Student'}
+              articles={uploadedFiles}
+              messages={messages}
+              analyzedIds={analyzedArticles}
+              perArticleComprehension={perArticleComprehension}
+            />
+          )}
+
           <section className="bg-card rounded-2xl shadow-sm border border-border p-5">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-5 border-b border-border pb-4">
               <div className="flex items-center justify-between w-full lg:w-auto">
@@ -552,17 +594,21 @@ export default function ChatInterface() {
               </div>
             </div>
 
-            {displayedArticles.length === 0 ? (
-              <div className="py-12 text-center text-muted-foreground bg-muted/50 rounded-xl border border-dashed border-border">
-                <p className="text-sm font-bold">No articles found matching criteria</p>
-              </div>
-            ) : (
-              <div className="relative bg-gradient-to-b from-slate-900/40 to-transparent p-2 rounded-xl">
-                <div 
-                  id="articles-carousel"
-                  className="flex overflow-x-auto gap-4 pb-2 snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
-                >
-                  {displayedArticles.map((article) => {
+            {(() => {
+              const analyzedOnly = displayedArticles.filter((a) => analyzedArticles.has(a.id));
+              const comparisonArticles = analyzedOnly.filter((a) => comparedArticles.has(a.id));
+              const analyzedColumnArticles = analyzedOnly.filter((a) => !comparedArticles.has(a.id));
+
+              if (analyzedOnly.length === 0) {
+                return (
+                  <div className="py-12 text-center text-muted-foreground bg-muted/50 rounded-xl border border-dashed border-border">
+                    <p className="text-sm font-bold">No analyzed articles yet</p>
+                    <p className="text-xs mt-1">Select a paper and click Analyze to see it here.</p>
+                  </div>
+                );
+              }
+
+              const renderCardList = (items: typeof analyzedOnly) => items.map((article) => {
                     const isSelected = selectedArticles.has(article.id);
                     const isExpanded = expandedSummaryId === article.id;
                     const summaryText = (article as any).summary || 'This paper explores the core methodologies and practical challenges in the field, proposing a novel framework to address data limitations. It offers deep insights into AI architecture and expands upon previous literature by demonstrating robust accuracy enhancements across multiple diverse data sets, setting a new benchmark for future comparative studies and implementations.';
@@ -573,18 +619,18 @@ export default function ChatInterface() {
                       <div
                         key={article.id}
                         onClick={() => !isLecturerView && toggleArticleSelection(article.id)}
-                        className={`flex-none w-full sm:w-[calc(50%-0.5rem)] snap-start relative flex flex-col p-4 rounded-xl border-2 transition-all cursor-pointer group min-h-[260px] ${
+                        className={`w-full relative flex flex-col p-4 rounded-xl border-2 transition-all cursor-pointer group min-h-[260px] ${
                            isLecturerView
-                             ? 'border-slate-800 bg-slate-900/40 shadow-sm cursor-default'
-                             : isSelected 
-                             ? 'border-white bg-slate-900/60 shadow-[0_0_15px_rgba(255,255,255,0.15)]' 
-                             : 'border-slate-800 bg-slate-900/40 hover:border-slate-700 hover:bg-slate-800/60 shadow-sm'
+                             ? 'border-border bg-card shadow-sm cursor-default'
+                             : isSelected
+                             ? 'border-red-500 bg-card shadow-[0_0_15px_rgba(220,38,38,0.18)] dark:border-white dark:bg-slate-900/60 dark:shadow-[0_0_15px_rgba(255,255,255,0.15)]'
+                             : 'border-border bg-card hover:border-red-300 hover:bg-muted/40 dark:border-slate-800 dark:bg-slate-900/40 dark:hover:border-slate-700 dark:hover:bg-slate-800/60 shadow-sm'
                         }`}
                       >
                         {!isLecturerView && (
                           <div className="absolute top-4 right-4 z-10">
-                            <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${isSelected ? 'bg-white border-white' : 'border-slate-600 bg-slate-800'}`}>
-                              {isSelected && <Check className="w-3.5 h-3.5 text-slate-900" strokeWidth={4} />}
+                            <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${isSelected ? 'bg-red-500 border-red-500 dark:bg-white dark:border-white' : 'border-border bg-card dark:border-slate-600 dark:bg-slate-800'}`}>
+                              {isSelected && <Check className="w-3.5 h-3.5 text-white dark:text-slate-900" strokeWidth={4} />}
                             </div>
                           </div>
                         )}
@@ -612,7 +658,7 @@ export default function ChatInterface() {
                           <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1 flex items-center gap-1.5 shrink-0">
                             <AlignLeft className="w-3 h-3 text-red-500" /> Auto-Summary
                           </span>
-                          <p className={`text-xs text-slate-300 leading-relaxed ${isExpanded ? '' : 'line-clamp-2'}`}>
+                          <p className={`text-xs text-foreground/80 leading-relaxed ${isExpanded ? '' : 'line-clamp-2'}`}>
                             {summaryText}
                           </p>
                           {canExpand && (
@@ -622,9 +668,28 @@ export default function ChatInterface() {
                           )}
                         </div>
 
-                        <button 
+                        {isLecturerView && (
+                          <div className="mb-3 shrink-0">
+                            <div className="flex items-center justify-between mb-1.5">
+                              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">Student Comprehension</span>
+                              <span className="text-xs font-bold text-foreground tabular-nums">{perArticleComprehension[article.id] ?? 0}%</span>
+                            </div>
+                            <div className="h-2 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden border border-border">
+                              <div
+                                className="h-full bg-gradient-to-r from-red-600 to-red-400 dark:from-red-500 dark:to-red-300 transition-all duration-500"
+                                style={{ width: `${perArticleComprehension[article.id] ?? 0}%` }}
+                                role="progressbar"
+                                aria-valuenow={perArticleComprehension[article.id] ?? 0}
+                                aria-valuemin={0}
+                                aria-valuemax={100}
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        <button
                           onClick={(e) => {
-                            e.stopPropagation(); 
+                            e.stopPropagation();
                             setSinglePDFView(article);
                           }}
                           className="w-full px-3 py-2.5 text-xs font-bold bg-slate-800 text-slate-200 border border-slate-700 hover:bg-slate-700 hover:text-white rounded-lg transition-colors mt-auto shrink-0 flex items-center justify-center gap-2"
@@ -633,364 +698,52 @@ export default function ChatInterface() {
                         </button>
                       </div>
                     );
-                  })}
-                </div>
-              </div>
-            )}
-          </section>
+                  });
 
-          {/* ═══ SECTION 2: AI Chat Interface (User's Styles + Dynamic Dual-Column Grouping Modal) ═══ */}
-          {!isLecturerView && (
-            <section className="bg-card rounded-2xl shadow-sm border border-border flex flex-col h-[500px] overflow-hidden">
-              {/* Header Container with Grid/Flex Alignment */}
-              <div className="bg-card px-5 py-4 border-b border-border flex items-center justify-between flex-shrink-0 gap-4 w-full min-w-0">
-                
-                {/* 1. Left Side: Title */}
-                <div className="flex items-center gap-2 shrink-0">
-                  <Sparkles className="w-5 h-5 text-slate-600" />
-                  <span className="font-bold text-foreground">Analysis Chat</span>
-                </div>
-                
-                {/* 2. Center: Scrollable Tabs Slider (Fixed layout constraints) */}
-                <div className="w-0 flex-1 overflow-x-auto overflow-y-hidden py-1 flex items-center gap-1.5 min-w-0 whitespace-nowrap">
-                  {articleGroups.map((group) => (
-                    <button
-                      key={group.id}
-                      onClick={() => {
-                        setActiveGroupId(group.id);
-                        setSelectedArticles(new Set(group.articleIds));
-                      }}
-                      className={`flex-none px-3 py-1.5 text-xs font-bold rounded-lg transition-all border whitespace-nowrap ${
-                        activeGroupId === group.id 
-                          ? 'bg-blue-600 text-white border-blue-600 shadow-md' 
-                          : 'bg-card text-foreground border-border hover:bg-slate-800 hover:text-white hover:border-blue-400'
-                      }`}
-                    >
-                      {group.name}
-                    </button>
-                  ))}
-                </div>
-
-                {/* 3. Right Side: Options Dropdown Trigger (Locked in place) */}
-                <div className="relative shrink-0">
-                  <button 
-                    onClick={() => setShowStatsMenu(!showStatsMenu)} 
-                    className="p-1.5 hover:bg-blue-600 hover:text-white hover:border-blue-600 rounded-lg text-foreground transition-all hover:scale-110 border border-border shadow-sm"
-                  >
-                    <MoreVertical className="w-4 h-4" />
-                  </button>
-                  
-                  {showStatsMenu && (
-                    <div className="absolute right-0 top-full mt-2 min-w-[18rem] z-50 bg-background border border-border rounded-xl shadow-lg p-4">
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <h3 className="text-sm font-semibold text-foreground">Article Groups</h3>
-                          <span className="text-xs text-muted-foreground">{articleGroups.length} groups</span>
-                        </div>
-                        
-                        <button
-                          onClick={() => {
-                            setIsCreatingGroup(true);
-                            setShowStatsMenu(false);
-                          }}
-                          className="w-full text-left px-3 py-2.5 text-sm bg-muted/50 hover:bg-muted rounded-lg flex items-center gap-2 transition-colors text-foreground border border-border"
-                        >
-                          <BookmarkPlus className="w-4 h-4 text-red-600" />
-                          <span>Create New Group</span>
-                        </button>
-                        
-                        <div className="border-t border-border my-2"></div>
-                        
-                        <div className="space-y-1 max-h-48 overflow-y-auto">
-                          {articleGroups.map((group) => (
-                            <div key={group.id} className="group/item">
-                              <button
-                                onClick={() => {
-                                  setActiveGroupId(group.id);
-                                  setSelectedArticles(new Set(group.articleIds));
-                                  setShowStatsMenu(false);
-                                }}
-                                className="w-full text-left flex items-center justify-between p-2 hover:bg-muted rounded-lg transition-colors cursor-pointer"
-                              >
-                                <div className="flex items-center gap-2 flex-1">
-                                  <div className="flex-1">
-                                    <div className="text-sm font-medium text-foreground">{group.name}</div>
-                                    <div className="text-xs text-muted-foreground">{group.articleIds.length} articles</div>
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
-                                  {articleGroups.length > 1 && (
-                                    <button
-                                      onClick={(e) => { 
-                                        e.stopPropagation(); 
-                                        if (confirm(`Delete group "${group.name}"?`)) deleteGroup(group.id); 
-                                      }}
-                                      className="p-1.5 hover:bg-blue-100 border border-transparent hover:border-blue-300 rounded text-blue-600 transition-colors"
-                                    >
-                                      <Trash2 className="w-3 h-3" />
-                                    </button>
-                                  )}
-                                </div>
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
+              return (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                  {/* Comparison column */}
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center justify-between px-2">
+                      <h3 className="text-xs font-bold text-foreground uppercase tracking-wide">Comparison</h3>
+                      <span className="text-[10px] font-bold text-muted-foreground">{comparisonArticles.length}</span>
                     </div>
-                  )}
-                </div>
-              </div>
-
-              {/* 3-Column Context Creator Modal Popup */}
-              {isCreatingGroup && (
-                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                  <div className="bg-card rounded-2xl shadow-xl w-full max-w-5xl p-6 border border-border max-h-[90vh] flex flex-col">
-                    <div className="shrink-0 mb-4">
-                      <h3 className="font-bold text-foreground text-base">Create New Research Context Group</h3>
-                      <p className="text-xs text-muted-foreground mt-0.5">Select articles, saved analyses, and comparisons to bundle together.</p>
-                      <input
-                        type="text"
-                        placeholder="Enter group name (e.g., Deep Learning Core)..."
-                        value={newGroupName}
-                        onChange={(e) => setNewGroupName(e.target.value)}
-                        className="w-full mt-3 px-4 py-2.5 border border-input rounded-xl text-sm focus:ring-2 focus:ring-blue-500 bg-background text-foreground outline-none transition-all shadow-inner"
-                        autoFocus
-                      />
-                    </div>
-                    
-                    {/* Balanced Three Columns Layout Grid */}
-                    <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 overflow-hidden my-2 min-h-0">
-                      
-                      {/* Column 1: Library Articles */}
-                      <div className="flex flex-col border border-border/60 bg-muted/30 rounded-xl p-3 overflow-hidden">
-                        <p className="text-xs font-bold text-foreground/80 mb-2 uppercase tracking-wide flex items-center gap-1.5 shrink-0">
-                          <FileText className="w-3.5 h-3.5 text-blue-500" /> Library Articles
-                        </p>
-                        <div className="flex-1 space-y-2 overflow-y-auto pr-1">
-                          {uploadedFiles.map((article) => {
-                            const isSelected = groupArticleSelection.has(article.id);
-                            return (
-                              <button
-                                key={article.id}
-                                onClick={() => {
-                                  const newSelection = new Set(groupArticleSelection);
-                                  if (isSelected) newSelection.delete(article.id);
-                                  else newSelection.add(article.id);
-                                  setGroupArticleSelection(newSelection);
-                                }}
-                                className={`w-full text-left px-3 py-2.5 text-xs bg-card hover:bg-muted rounded-lg flex items-center gap-2.5 transition-colors text-foreground border ${
-                                  isSelected ? 'border-blue-500/50 bg-blue-500/5' : 'border-border/60'
-                                }`}
-                              >
-                                <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${isSelected ? 'bg-blue-600 border-blue-600' : 'border-slate-600 bg-slate-800'}`}>
-                                  {isSelected && <Check className="w-2.5 h-2.5 text-white" strokeWidth={4} />}
-                                </div>
-                                <span className="flex-1 truncate font-medium">{article.title}</span>
-                              </button>
-                            );
-                          })}
-                        </div>
+                    {comparisonArticles.length === 0 ? (
+                      <div className="py-8 text-center text-xs text-muted-foreground bg-muted/40 rounded-xl border border-dashed border-border">
+                        No comparisons yet
                       </div>
-
-                      {/* Column 2: Saved Analyses */}
-                      <div className="flex flex-col border border-border/60 bg-muted/30 rounded-xl p-3 overflow-hidden">
-                        <p className="text-xs font-bold text-foreground/80 mb-2 uppercase tracking-wide flex items-center gap-1.5 shrink-0">
-                          <Sparkles className="w-3.5 h-3.5 text-purple-500" /> Saved Analyses
-                        </p>
-                        <div className="flex-1 space-y-2 overflow-y-auto pr-1">
-                          {savedAnalyses && savedAnalyses.filter(a => a.analysisType !== 'compare').length > 0 ? (
-                            savedAnalyses.filter(a => a.analysisType !== 'compare').map((analysis) => {
-                              const isSelected = groupArticleSelection.has(analysis.id);
-                              return (
-                                <button
-                                  key={analysis.id}
-                                  onClick={() => {
-                                    const newSelection = new Set(groupArticleSelection);
-                                    if (isSelected) newSelection.delete(analysis.id);
-                                    else newSelection.add(analysis.id);
-                                    setGroupArticleSelection(newSelection);
-                                  }}
-                                  className={`w-full text-left px-3 py-2.5 text-xs bg-card hover:bg-muted rounded-lg flex items-center gap-2.5 transition-colors text-foreground border ${
-                                    isSelected ? 'border-purple-500/50 bg-purple-500/5' : 'border-border/60'
-                                  }`}
-                                >
-                                  <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${isSelected ? 'bg-purple-600 border-purple-600' : 'border-slate-600 bg-slate-800'}`}>
-                                    {isSelected && <Check className="w-2.5 h-2.5 text-white" strokeWidth={4} />}
-                                  </div>
-                                  <span className="flex-1 truncate font-medium">{analysis.name}</span>
-                                </button>
-                              );
-                            })
-                          ) : (
-                            <div className="h-full flex flex-col items-center justify-center text-center p-4">
-                              <p className="text-xs font-medium text-muted-foreground">No analyses found</p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Column 3: Saved Comparisons */}
-                      <div className="flex flex-col border border-border/60 bg-muted/30 rounded-xl p-3 overflow-hidden">
-                        <p className="text-xs font-bold text-foreground/80 mb-2 uppercase tracking-wide flex items-center gap-1.5 shrink-0">
-                          <MessageSquare className="w-3.5 h-3.5 text-indigo-500" /> Saved Comparisons
-                        </p>
-                        <div className="flex-1 space-y-2 overflow-y-auto pr-1">
-                          {savedAnalyses && savedAnalyses.filter(a => a.analysisType === 'compare').length > 0 ? (
-                            savedAnalyses.filter(a => a.analysisType === 'compare').map((analysis) => {
-                              const isSelected = groupArticleSelection.has(analysis.id);
-                              return (
-                                <button
-                                  key={analysis.id}
-                                  onClick={() => {
-                                    const newSelection = new Set(groupArticleSelection);
-                                    if (isSelected) newSelection.delete(analysis.id);
-                                    else newSelection.add(analysis.id);
-                                    setGroupArticleSelection(newSelection);
-                                  }}
-                                  className={`w-full text-left px-3 py-2.5 text-xs bg-card hover:bg-muted rounded-lg flex items-center gap-2.5 transition-colors text-foreground border ${
-                                    isSelected ? 'border-indigo-500/50 bg-indigo-500/5' : 'border-border/60'
-                                  }`}
-                                >
-                                  <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${isSelected ? 'bg-indigo-600 border-indigo-600' : 'border-slate-600 bg-slate-800'}`}>
-                                    {isSelected && <Check className="w-2.5 h-2.5 text-white" strokeWidth={4} />}
-                                  </div>
-                                  <span className="flex-1 truncate font-medium">{analysis.name}</span>
-                                </button>
-                              );
-                            })
-                          ) : (
-                            <div className="h-full flex flex-col items-center justify-center text-center p-4">
-                              <p className="text-xs font-medium text-muted-foreground">No comparisons found</p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                    </div>
-
-                    {/* Modal Controls Bottom Row */}
-                    <div className="flex gap-3 shrink-0 pt-3 border-t border-border mt-2">
-                      <button
-                        onClick={createNewGroup}
-                        disabled={!newGroupName.trim()}
-                        className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-500 hover:shadow-lg disabled:opacity-40 disabled:hover:shadow-none transition-all"
-                      >
-                        Create Group Context
-                      </button>
-                      <button
-                        onClick={() => { 
-                          setIsCreatingGroup(false); 
-                          setNewGroupName(''); 
-                          setGroupArticleSelection(new Set()); 
-                        }}
-                        className="px-5 py-2.5 bg-muted text-muted-foreground rounded-xl text-sm font-bold hover:bg-slate-800 hover:text-white transition-all border border-border"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Central Chat Stream Logs Container */}
-              <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-gradient-to-b from-slate-900/40 via-background to-background">
-                {messages.map((msg, idx) => (
-                  <div key={idx} className="space-y-4 mb-8">
-                    <div className="flex justify-end group">
-                      <div className="max-w-[80%] p-4 rounded-2xl rounded-tr-none border border-blue-500/20 bg-blue-950/30 backdrop-blur-md shadow-lg transition-all hover:bg-blue-900/40 hover:border-blue-400/40">
-                        <p className="text-sm leading-relaxed text-slate-200 group-hover:text-white transition-colors">
-                          {msg.question}
-                        </p>
-                      </div>
-                    </div>
-
-                    {msg.answer && (
-                      <div className="flex justify-start">
-                        <div className="max-w-[90%] flex items-start gap-4">
-                          <div className="w-9 h-9 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg flex items-center justify-center flex-shrink-0 mt-1 shadow-sm">
-                            <Sparkles className="w-5 h-5 text-red-600" />
-                          </div>
-
-                          <div className="flex-1 space-y-2">
-                            <div className="bg-card/80 backdrop-blur-sm border border-border rounded-2xl rounded-tl-sm px-5 py-4 shadow-sm">
-                              <p className="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">
-                                {msg.answer}
-                              </p>
-                              
-                              {msg.sources && (
-                                <div className="mt-4 pt-4 border-t border-border">
-                                  <p className="text-[11px] font-semibold text-muted-foreground mb-2 uppercase tracking-wide">Sources</p>
-                                  <div className="flex flex-wrap gap-2">
-                                    {msg.sources.map((source, i) => {
-                                      const article = uploadedFiles.find(a => a.id === msg.articleId);
-                                      return (
-                                        <button
-                                          key={i}
-                                          onClick={() => {
-                                            if (article) {
-                                              setSelectedArticles(new Set([article.id]));
-                                              toast.success(`Selected: ${article.title}`);
-                                            }
-                                          }}
-                                          className="px-2.5 py-1 bg-slate-800/50 text-slate-300 text-[10px] font-bold rounded border border-slate-700 hover:bg-blue-600 hover:border-blue-500 hover:text-white transition-all cursor-pointer flex items-center gap-1.5"
-                                        >
-                                          <FileText className="w-2.5 h-2.5" />
-                                          {article ? article.title.substring(0, 20) + '...' : source}
-                                        </button>
-                                      );
-                                    })}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                            
-                            <button
-                              onClick={() => setActiveExplainIdx(activeExplainIdx === idx ? null : idx)}
-                              className="text-[10px] font-bold text-muted-foreground flex items-center gap-1.5 hover:text-blue-500 transition-colors ml-1 uppercase tracking-wider"
-                            >
-                              <HelpCircle className="w-3.5 h-3.5" /> How was this derived?
-                            </button>
-                          </div>
-                        </div>
-                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-3">{renderCardList(comparisonArticles)}</div>
                     )}
                   </div>
-                ))}
 
-                {isTyping && (
-                  <div className="flex gap-2 p-3 ml-12 items-center">
-                    <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" />
-                    <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce [animation-delay:0.2s]" />
-                    <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce [animation-delay:0.4s]" />
+                  {/* Analyzed column */}
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center justify-between px-2">
+                      <h3 className="text-xs font-bold text-foreground uppercase tracking-wide">Analyzed</h3>
+                      <span className="text-[10px] font-bold text-muted-foreground">{analyzedColumnArticles.length}</span>
+                    </div>
+                    {analyzedColumnArticles.length === 0 ? (
+                      <div className="py-8 text-center text-xs text-muted-foreground bg-muted/40 rounded-xl border border-dashed border-border">
+                        No analyzed-only papers
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-3">{renderCardList(analyzedColumnArticles)}</div>
+                    )}
                   </div>
-                )}
-              </div>
-
-              {/* Chat Text Input Section Area */}
-              <div className="px-5 py-6 bg-card/90 backdrop-blur-md border-t border-border">
-                <div className="max-w-4xl mx-auto flex gap-3">
-                  <input
-                    type="text"
-                    value={inputMessage}
-                    onChange={(e) => setInputMessage(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                    placeholder={activeGroupId ? 
-                      `Ask about group "${articleGroups.find(g => g.id === activeGroupId)?.name}"...` : 
-                      "Ask about methodology, findings, or gaps..."
-                    }
-                    className="flex-1 px-5 py-3 text-sm bg-slate-800/40 border border-slate-700/50 rounded-2xl focus:ring-2 focus:ring-blue-600/50 focus:border-blue-500 outline-none text-slate-100 placeholder:text-slate-500 transition-all shadow-inner"
-                  />
-                  <button 
-                    onClick={handleSendMessage}
-                    disabled={!inputMessage.trim()}
-                    className="p-3 bg-blue-600 text-white rounded-2xl hover:bg-blue-500 hover:shadow-[0_0_15px_rgba(37,99,235,0.4)] disabled:opacity-30 disabled:hover:shadow-none transition-all flex items-center justify-center shrink-0"
-                  >
-                    <Send className="w-5 h-5" />
-                  </button>
                 </div>
-              </div>
-            </section>
+              );
+            })()}
+          </section>
+
+          {/* ═══ Guided Questions — primary tool to sharpen understanding ═══ */}
+          {!isLecturerView && (
+            <GuidingQuestionsBlock
+              disabled={!canChat}
+              disabledReason="Analyze a selected PDF first to unlock guided questions"
+            />
           )}
+
         </div>
       </div>
 
@@ -1036,15 +789,6 @@ export default function ChatInterface() {
         </div>
       )}
 
-      {!isLecturerView && showGuidingPanel && (
-        <GuidingQuestionsPanel
-          questions={guidingQuestions}
-          setQuestions={setGuidingQuestions}
-          instruction={guidingInstruction}
-          setInstruction={setGuidingInstruction}
-          onClose={() => setShowGuidingPanel(false)}
-        />
-      )}
 
       {analysisType && (
         <AnalysisStagesDialog
@@ -1052,6 +796,11 @@ export default function ChatInterface() {
           onClose={() => setAnalysisType(null)}
           onComplete={() => {
             const t = analysisType;
+            setAnalyzedArticles((prev) => new Set([...prev, ...selectedArticles]));
+            if (t === 'compare') setComparedArticles((prev) => new Set([...prev, ...selectedArticles]));
+            // Demo flag — forces Chat Analyzer bar to 100% so the celebration effect is visible
+            try { localStorage.setItem('demo-comprehension-100', '1'); } catch {}
+            window.dispatchEvent(new CustomEvent('comprehension-demo-100'));
             setAnalysisType(null);
             if (t === 'compare') setShowComparisonModal(true);
             else setShowAnalysisModal(true);

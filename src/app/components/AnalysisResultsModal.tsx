@@ -1,10 +1,18 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   X, BarChart3, Download, FileText, TrendingUp, Award, BookOpen,
-  Calendar, Hash, Target, Layers, ChevronDown, ChevronUp, Info
+  Calendar, Hash, Target, Layers, ChevronDown, ChevronUp, Info,
+  Lock, CheckCircle2
 } from 'lucide-react';
 import { Article } from '../data/mockData';
 import { toast } from 'sonner';
+import { useAuth } from '../context/AuthContext';
+import {
+  getAnalysis,
+  isLecturerPayload,
+  StudentAnalysisReceipt,
+  LecturerAnalysisPayload,
+} from '../services/analysisService';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend, LineChart, Line, RadarChart, Radar, PolarGrid,
@@ -24,8 +32,85 @@ const EXPLANATION =
 const COLORS = ['#dc2626', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899'];
 
 export default function AnalysisResultsModal({ articles, depth, onClose }: AnalysisResultsModalProps) {
+  const { user } = useAuth();
+  const role = user?.role === 'lecturer' ? 'lecturer' : 'student';
+  const analysisId = `an-${articles.map(a => a.id).join('-').slice(0, 24)}`;
+
+  const [payload, setPayload] = useState<StudentAnalysisReceipt | LecturerAnalysisPayload | null>(null);
+  const [loading, setLoading] = useState(true);
   const [showExplanation, setShowExplanation] = useState(false);
   const [activeSection, setActiveSection] = useState<number | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getAnalysis(analysisId, role, articles, depth).then((p) => {
+      if (!cancelled) { setPayload(p); setLoading(false); }
+    });
+    return () => { cancelled = true; };
+  }, [analysisId, role, depth]);
+
+  // Student view: receipt summary (no chart data, no URL textbox)
+  if (role === 'student') {
+    const receipt = payload && !isLecturerPayload(payload) ? payload : null;
+    return (
+      <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="bg-card w-full max-w-md rounded-2xl shadow-2xl border border-border overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-muted rounded-xl flex items-center justify-center text-red-600">
+                <Lock className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="font-bold text-foreground text-base">Analysis Ready</h2>
+                <p className="text-xs text-muted-foreground">Submitted for lecturer review</p>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 text-muted-foreground hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950 rounded-lg transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="p-5 space-y-4">
+            {loading || !receipt ? (
+              <div className="text-sm text-muted-foreground">Generating analysis…</div>
+            ) : (
+              <>
+                <div className="flex items-start gap-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800">
+                  <CheckCircle2 className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+                  <div className="text-xs text-amber-800 dark:text-amber-200">
+                    Charts and detailed data are visible to your lecturer only. Continue practicing in the Chat Analyzer.
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 rounded-xl bg-muted border border-border">
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide mb-1">Status</p>
+                    <p className="text-sm font-bold text-foreground capitalize">{receipt.status}</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-muted border border-border">
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide mb-1">Created</p>
+                    <p className="text-sm font-bold text-foreground">{new Date(receipt.createdAt).toLocaleString()}</p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={onClose}
+                  className="w-full py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-bold transition-colors"
+                >
+                  Got it
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Lecturer view continues below with full charts.
 
   /* ─── Calculate Statistics ─── */
   const totalCitations = articles.reduce((sum, a) => sum + a.citations, 0);
@@ -384,3 +469,4 @@ export default function AnalysisResultsModal({ articles, depth, onClose }: Analy
     </div>
   );
 }
+

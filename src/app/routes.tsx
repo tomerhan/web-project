@@ -9,6 +9,7 @@ import Library from './components/Library';
 import SettingsPage from './components/SettingsPage';
 import HistoryPage from './components/HistoryPage';
 import AnalyzedReports from './components/AnalyzedReports';
+import ChatAnalyzer from './components/ChatAnalyzer';
 import MainLayout from './components/MainLayout';
 
 function Root() {
@@ -61,8 +62,9 @@ export const router = createBrowserRouter([
       {
         Component: StudentLayout,
         children: [
-          { index: true,       Component: ChatInterface },
-          { path: 'library',   Component: Library },
+          { index: true,             Component: ChatInterface },
+          { path: 'chat-analyzer',   Component: ChatAnalyzer },
+          { path: 'library',         Component: Library },
           { path: 'reports',   Component: AnalyzedReports },
           { path: 'settings',  Component: SettingsPage },
           { path: 'history',   Component: HistoryPage },

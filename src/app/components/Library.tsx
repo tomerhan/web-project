@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   Search, Filter, Upload, FileText, Calendar, Users, TrendingUp,
-  LayoutGrid, List, BookOpen, Star, ChevronDown, ChevronUp, X, Check
+  LayoutGrid, List, BookOpen, Star, ChevronDown, ChevronUp, X, Check, Sparkles
 } from 'lucide-react';
 import { mockArticles, Article } from '../data/mockData';
 import { toast } from 'sonner';
@@ -55,6 +55,21 @@ export default function Library() {
   };
 
   const bestMatchId = [...articles].sort((a, b) => b.citations - a.citations)[0]?.id;
+
+  // Similar-article suggestions: pick top-cited from each top topic in the library
+  const topTopics = (() => {
+    const counts: Record<string, number> = {};
+    articles.forEach((a) => a.topics.forEach((t) => { counts[t] = (counts[t] || 0) + 1; }));
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([t]) => t);
+  })();
+  const suggestions = topTopics
+    .map((topic) => {
+      const pool = articles.filter((a) => a.topics.includes(topic));
+      return pool.sort((a, b) => b.citations - a.citations)[0];
+    })
+    .filter(Boolean)
+    .filter((a, idx, arr) => arr.findIndex((x) => x.id === a.id) === idx)
+    .slice(0, 3);
 
   return (
     <div className="flex-1 overflow-y-auto bg-muted">
@@ -158,7 +173,49 @@ export default function Library() {
       </div>
 
       {/* Articles */}
-      <div className="max-w-6xl mx-auto px-6 py-8">
+      <div className="max-w-6xl mx-auto px-6 py-8 space-y-6">
+
+        {/* Similar-article suggestions */}
+        {suggestions.length > 0 && (
+          <section className="bg-card rounded-2xl border border-border shadow-sm p-5">
+            <div className="flex items-center gap-3 mb-4 pb-3 border-b border-border">
+              <div className="p-2.5 bg-muted border border-border rounded-xl shadow-sm">
+                <Sparkles className="w-5 h-5 text-red-600" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-foreground">Suggested Similar Articles</h2>
+                <p className="text-xs text-muted-foreground mt-0.5 font-medium">
+                  Picks based on the topics already in your library
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {suggestions.map((a) => (
+                <div
+                  key={a.id}
+                  className="bg-muted/40 border border-border rounded-xl p-4 hover:bg-muted/70 hover:border-red-300 transition-colors cursor-pointer"
+                  onClick={() => toast.success(`Opened "${a.title}"`)}
+                >
+                  <div className="flex items-start gap-2 mb-2">
+                    <FileText className="w-4 h-4 text-red-600 mt-0.5 shrink-0" />
+                    <p className="text-sm font-bold text-foreground line-clamp-2">{a.title}</p>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground font-medium mb-2 truncate">
+                    {a.authors[0]}{a.authors.length > 1 ? ' et al.' : ''} • {a.year}
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    {a.topics.slice(0, 2).map((t) => (
+                      <span key={t} className="px-2 py-0.5 bg-card border border-border text-foreground rounded-full text-[10px] font-medium">{t}</span>
+                    ))}
+                    <span className="ml-auto text-[10px] text-muted-foreground flex items-center gap-1">
+                      <TrendingUp className="w-3 h-3" /> {a.citations}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {filteredArticles.length === 0 ? (
           <div className="bg-card border border-border rounded-2xl p-12 text-center shadow-sm">

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   FileText, MessageSquare, BookOpen, Settings, History,
-  ChevronLeft, ChevronRight, X, GraduationCap, BarChart
+  ChevronLeft, ChevronRight, X, GraduationCap, BarChart, Activity
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router';
 import { useAuth } from '../context/AuthContext';
@@ -19,6 +19,7 @@ export default function Sidebar({ mobileSidebarOpen, onMobileSidebarClose }: Sid
 
   const navItemsBase = [
     { icon: MessageSquare, label: 'Analyzed Articles', path: '/' },
+    { icon: Activity,       label: 'Chat Analyzer',    path: '/chat-analyzer' },
     { icon: BookOpen,       label: 'All Articles',    path: '/library' },
     { icon: BarChart,       label: 'Analyzed Reports', path: '/reports' },
     { icon: History,        label: 'Chat History',    path: '/history' },

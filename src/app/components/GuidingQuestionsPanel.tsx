@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, X, Settings2, Sparkles, Trash2 } from 'lucide-react';
+import { Plus, X, Settings2, Sparkles, Trash2, Send, Lightbulb, BookOpen } from 'lucide-react';
 
 interface GuidingQuestionsPanelProps {
   questions: string[];
@@ -14,6 +14,27 @@ export default function GuidingQuestionsPanel({
 }: GuidingQuestionsPanelProps) {
   const [newQuestion, setNewQuestion] = useState('');
   const [isAdding, setIsAdding] = useState(false);
+  // Practice Q&A — student asks, gets mock guided answer to build knowledge before main chat
+  const [practiceQ, setPracticeQ] = useState('');
+  const [practiceLog, setPracticeLog] = useState<{ q: string; a: string; guide: string[] }[]>([]);
+  const [practiceLoading, setPracticeLoading] = useState(false);
+
+  const askPractice = () => {
+    const q = practiceQ.trim();
+    if (!q) return;
+    setPracticeLoading(true);
+    setTimeout(() => {
+      const a = `Practice answer for: "${q}". Key idea: focus on the methodology section first, then compare results against the abstract's claims.`;
+      const guide = [
+        'What problem does the paper define?',
+        'Which methods were used to validate it?',
+        'How would you challenge a weak result?',
+      ];
+      setPracticeLog((prev) => [{ q, a, guide }, ...prev]);
+      setPracticeQ('');
+      setPracticeLoading(false);
+    }, 700);
+  };
 
   const handleAdd = () => {
     if (newQuestion.trim()) {
@@ -96,6 +117,66 @@ export default function GuidingQuestionsPanel({
               </button>
             </div>
           )}
+        </div>
+
+        <div className="w-full h-px bg-muted"></div>
+
+        {/* Practice Q&A — ask anything, get guided answer to build knowledge */}
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <Lightbulb className="w-4 h-4 text-amber-500" />
+            <h3 className="font-bold text-foreground text-sm">Practice Q&amp;A</h3>
+          </div>
+          <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
+            Ask anything about your papers. Get a guided answer plus follow-up prompts to prepare you for the main chat.
+          </p>
+
+          <div className="flex gap-2 mb-3">
+            <input
+              type="text"
+              value={practiceQ}
+              onChange={(e) => setPracticeQ(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && askPractice()}
+              placeholder="What would you like to understand?"
+              className="flex-1 px-3 py-2.5 text-sm bg-muted border border-input rounded-xl focus:bg-card focus:border-amber-400 focus:ring-2 focus:ring-amber-100 dark:focus:ring-amber-900/40 outline-none transition-all text-foreground placeholder:text-muted-foreground"
+            />
+            <button
+              onClick={askPractice}
+              disabled={!practiceQ.trim() || practiceLoading}
+              className="px-3 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold disabled:opacity-50 transition-colors flex items-center gap-1.5"
+            >
+              <Send className="w-3.5 h-3.5" /> Ask
+            </button>
+          </div>
+
+          {practiceLoading && (
+            <div className="text-xs text-muted-foreground mb-3">Thinking…</div>
+          )}
+
+          <div className="flex flex-col gap-3">
+            {practiceLog.map((item, i) => (
+              <div key={i} className="rounded-xl border border-border bg-card overflow-hidden">
+                <div className="px-3 py-2 bg-amber-50 dark:bg-amber-950/30 border-b border-border">
+                  <p className="text-[10px] font-bold text-amber-700 dark:text-amber-300 uppercase tracking-wide mb-0.5">You asked</p>
+                  <p className="text-xs text-foreground">{item.q}</p>
+                </div>
+                <div className="px-3 py-2.5">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide mb-1">Guided Answer</p>
+                  <p className="text-xs text-foreground leading-relaxed">{item.a}</p>
+                </div>
+                <div className="px-3 py-2 border-t border-border bg-muted/50">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide mb-1.5 flex items-center gap-1">
+                    <BookOpen className="w-3 h-3" /> Follow-up prompts
+                  </p>
+                  <ul className="space-y-1">
+                    {item.guide.map((g, j) => (
+                      <li key={j} className="text-[11px] text-muted-foreground leading-snug">• {g}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="w-full h-px bg-muted"></div>
