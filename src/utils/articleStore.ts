@@ -27,3 +27,13 @@ export const saveUploadedArticle = (article: Article) => {
 export const clearUploadedArticles = () => {
   try { localStorage.removeItem(STORAGE_KEY); } catch (e) { /* ignore */ }
 };
+
+export const deleteUploadedArticle = (id: string) => {
+  try {
+    const existing = loadUploadedArticles();
+    const filtered = existing.filter(a => a.id !== id);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+  } catch (e) {
+    console.error('deleteUploadedArticle error', e);
+  }
+};

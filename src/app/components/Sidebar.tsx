@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import {
-  FileText, MessageSquare, BookOpen, Settings, History,
-  ChevronLeft, ChevronRight, X, GraduationCap, BarChart, Activity
+  FileText, ChevronLeft, ChevronRight, X, GraduationCap
 } from 'lucide-react';
+import { NAV_ITEMS } from '../config/nav';
 import { useNavigate, useLocation } from 'react-router';
 import { useAuth } from '../context/AuthContext';
 
@@ -17,17 +17,7 @@ export default function Sidebar({ mobileSidebarOpen, onMobileSidebarClose }: Sid
   const location = useLocation();
   const { user, logout } = useAuth();
 
-  const navItemsBase = [
-    { icon: MessageSquare, label: 'Analyzed Articles', path: '/' },
-    { icon: Activity,       label: 'Chat Analyzer',    path: '/chat-analyzer' },
-    { icon: BookOpen,       label: 'All Articles',    path: '/library' },
-    { icon: BarChart,       label: 'Analyzed Reports', path: '/reports' },
-    { icon: History,        label: 'Chat History',    path: '/history' },
-    { icon: Settings,       label: 'Settings',        path: '/settings' },
-  ];
-
-  // Show Settings only for lecturers
-  const navItems = navItemsBase;
+  const navItems = NAV_ITEMS;
 
   const isActive = (path: string) => location.pathname === path;
 

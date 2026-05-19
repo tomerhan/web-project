@@ -4,10 +4,13 @@ import {
   ChevronDown, ChevronUp, Eye, Download
 } from 'lucide-react';
 import { mockArticles, Article } from '../data/mockData';
+import { CHAT_LABEL } from '../config/nav';
 import { loadUploadedArticles } from '../../utils/articleStore';
 import { toast } from 'sonner';
 import AnalysisResultsModal from './AnalysisResultsModal';
 import ComparisonModal from './ComparisonModal';
+import ArticleIcon from './ui/ArticleIcon';
+import SinglePDFViewer from './SinglePDFViewer';
 
 interface AnalysisReport {
   id: string;
@@ -24,8 +27,9 @@ export default function AnalyzedReports() {
   const [selectedReport, setSelectedReport] = useState<AnalysisReport | null>(null);
   const [showCompareModal, setShowCompareModal] = useState(false);
   const [compareArticles, setCompareArticles] = useState<Article[]>([]);
+  const [singlePDFView, setSinglePDFView] = useState<Article | null>(null);
   
-  // Mock analysis reports
+  // Reports - keep mock seed but allow syncing with uploaded articles
   const [reports, setReports] = useState<AnalysisReport[]>([
     {
       id: 'r1',
@@ -82,6 +86,23 @@ export default function AnalyzedReports() {
     }
   };
 
+  // All available articles (stored uploads merged with mocks)
+  const allArticles = (() => {
+    try {
+      const stored = loadUploadedArticles();
+      return [...stored, ...mockArticles.filter(m => !stored.find(s => s.id === m.id))];
+    } catch (e) {
+      return mockArticles;
+    }
+  })();
+
+  // Analyzed article ids are those referenced by any report
+  const analyzedArticleIds = Array.from(new Set(reports.flatMap(r => r.articleIds)));
+  const analyzedArticles = allArticles.filter(a => analyzedArticleIds.includes(a.id));
+
+  // Comparison reports are reports with 2+ articles
+  const comparisonReports = reports.filter(r => r.articleIds.length >= 2 && r.name.toLowerCase().includes(searchQuery.toLowerCase()));
+
   return (
     <div className="flex-1 flex flex-col min-w-0 min-h-0 relative overflow-hidden bg-muted">
       {/* Header */}
@@ -117,135 +138,80 @@ export default function AnalyzedReports() {
 
       {/* Reports */}
       <div className="max-w-6xl mx-auto px-6 py-8">
-        {filteredReports.length === 0 ? (
-          <div className="bg-card border border-border rounded-2xl p-12 text-center shadow-sm">
-            <BarChart className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="font-bold text-foreground mb-1">No reports found</h3>
-            <p className="text-sm text-muted-foreground">Try a different search term or create a new analysis.</p>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Left: Research Chat */}
+          <div>
+            <h3 className="text-sm font-bold text-foreground mb-3">{CHAT_LABEL}</h3>
+            <div className="space-y-3">
+              {analyzedArticles.length === 0 ? (
+                <div className="bg-card border border-border rounded-2xl p-6 text-center">
+                  <p className="text-sm text-muted-foreground">No articles in Research Chat yet.</p>
+                </div>
+              ) : (
+                analyzedArticles.map((article) => (
+                  <div key={article.id} className="bg-card rounded-xl border border-border p-3 flex items-center gap-3">
+                    <ArticleIcon size="md" title="Article">
+                      <FileText className="w-5 h-5 text-current" />
+                    </ArticleIcon>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">{article.title}</p>
+                      <p className="text-xs text-muted-foreground">{article.authors[0]} et al. · {article.year}</p>
+                    </div>
+                    <button onClick={() => setSinglePDFView(article)} className="p-2 text-muted-foreground hover:text-foreground rounded-md" title="Open PDF">
+                      <Eye className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
-        ) : (
-          <div className="space-y-4">
-            {filteredReports.map((report) => {
-              const isExpanded = expandedId === report.id;
-              const articles = getArticlesForReport(report.articleIds);
-              
-              return (
-                <div
-                  key={report.id}
-                  className="bg-card rounded-2xl border border-border shadow-sm hover:shadow-md transition-all"
-                >
-                  <div className="p-5">
-                    <div className="flex items-start justify-between gap-3 mb-3">
+
+          {/* Right: Comparison Reports */}
+          <div>
+            <h3 className="text-sm font-bold text-foreground mb-3">Comparisons</h3>
+            <div className="space-y-3">
+              {comparisonReports.length === 0 ? (
+                <div className="bg-card border border-border rounded-2xl p-6 text-center">
+                  <p className="text-sm text-muted-foreground">No comparisons available.</p>
+                </div>
+              ) : (
+                comparisonReports.map((report) => (
+                  <div key={report.id} className="bg-card rounded-xl border border-border p-3">
+                    <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-bold text-foreground leading-tight mb-1">
-                          {report.name}
-                        </h3>
-                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                          <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> {report.analysisDate}</span>
-                          <span>·</span>
-                          <span className="flex items-center gap-1"><FileText className="w-3.5 h-3.5" /> {articles.length} articles</span>
-                          <span>·</span>
-                          <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-foreground border border-slate-300 dark:border-slate-600 rounded-full text-[10px] font-bold uppercase">
-                            {report.depth}
-                          </span>
-                        </div>
+                        <p className="font-bold text-foreground truncate">{report.name}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{report.articleIds.length} articles · {report.analysisDate}</p>
                       </div>
-                      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-                        <button
-                          onClick={() => handleExport(report)}
-                          className="p-1.5 text-muted-foreground hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                          title="Export report"
-                        >
-                          <Download className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(report.id, report.name)}
-                          className="p-1.5 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Delete report"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                        {report.articleIds.length >= 2 && (
-                          <button
-                            onClick={() => {
-                              setCompareArticles(getArticlesForReport(report.articleIds));
-                              setShowCompareModal(true);
-                            }}
-                            className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-xs font-bold hover:bg-blue-100 transition-colors"
-                            title="Compare articles in this report"
-                          >
-                            <GitCompare className="w-4 h-4" />
-                            Compare
-                          </button>
-                        )}
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => { setCompareArticles(getArticlesForReport(report.articleIds)); setShowCompareModal(true); }} className="px-3 py-1 rounded-lg bg-blue-50 text-blue-700 text-xs font-bold">Open Comparison</button>
                       </div>
                     </div>
-
-                    {/* Expand/Collapse */}
-                    <button
-                      onClick={() => setExpandedId(isExpanded ? null : report.id)}
-                      className="w-full flex items-center justify-between text-xs font-bold text-muted-foreground hover:text-foreground transition-colors mb-2"
-                    >
-                      <span>View Details</span>
-                      {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                    </button>
-
-                    {isExpanded && (
-                      <div className="space-y-3 mt-3 border-t border-border pt-4">
-                        <div>
-                          <p className="text-[11px] font-bold text-foreground uppercase tracking-wider mb-2">Analyzed Articles</p>
-                          <div className="space-y-2">
-                            {articles.map((article) => (
-                              <div
-                                key={article.id}
-                                className="flex items-center gap-3 p-2 rounded-lg bg-muted/50 border border-border"
-                              >
-                                <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                                  <FileText className="w-4 h-4 text-red-600" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-xs font-medium text-foreground truncate">{article.title}</p>
-                                  <p className="text-[10px] text-muted-foreground">{article.authors[0]} et al. · {article.year}</p>
-                                </div>
-                                <span className="p-1.5 text-muted-foreground" aria-hidden="true">
-                                  <Eye className="w-3.5 h-3.5" />
-                                </span>
-                              </div>
-                            ))}
+                    <div className="mt-3 space-y-2">
+                      {getArticlesForReport(report.articleIds).map(a => (
+                        <div key={a.id} className="flex items-center gap-3 p-2 rounded-lg bg-muted/50 border border-border">
+                                <ArticleIcon size="sm" title="Article">
+                                  <FileText className="w-4 h-4 text-current" />
+                                </ArticleIcon>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-foreground truncate">{a.title}</p>
                           </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Actions */}
-                    <div className="pt-3 mt-3 border-t border-border">
-                        <div className="flex gap-6">
-                          <button
-                            onClick={() => handleViewAnalysis(report)}
-                            className="flex-1 px-3 py-2.5 text-xs font-bold bg-slate-800 text-slate-200 border border-slate-700 hover:bg-slate-700 hover:text-white rounded-lg transition-colors mt-auto shrink-0 flex items-center justify-center gap-2"
-                          >
-                            <Eye className="w-3.5 h-3.5" /> View Analysis
+                          <button onClick={() => setSinglePDFView(a)} className="p-2 text-muted-foreground hover:text-foreground rounded-md" title="Open PDF">
+                            <Eye className="w-4 h-4" />
                           </button>
-                          {report.articleIds.length >= 2 && (
-                            <button
-                              onClick={() => {
-                                setCompareArticles(getArticlesForReport(report.articleIds));
-                                setShowCompareModal(true);
-                              }}
-                              className="flex-1 px-3 py-2.5 text-xs font-bold bg-blue-50 text-blue-700 border border-blue-100 hover:bg-blue-100 rounded-lg transition-colors mt-auto shrink-0 flex items-center justify-center gap-2"
-                            >
-                              <GitCompare className="w-4 h-4" /> Compare
-                            </button>
-                          )}
                         </div>
+                      ))}
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                ))
+              )}
+            </div>
           </div>
-        )}
+        </div>
       </div>
+
+      {singlePDFView && (
+        <SinglePDFViewer article={singlePDFView} onClose={() => setSinglePDFView(null)} />
+      )}
 
       {selectedReport && (
         <AnalysisResultsModal

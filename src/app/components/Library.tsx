@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import {
   Search, Filter, Upload, FileText, Calendar, Users, TrendingUp,
-  LayoutGrid, List, BookOpen, Star, ChevronDown, ChevronUp, Check, Sparkles
+  LayoutGrid, List, BookOpen, Star, ChevronDown, ChevronUp, Check, Sparkles, Trash2
 } from 'lucide-react';
 import { mockArticles, Article } from '../data/mockData';
-import { saveUploadedArticle } from '../../utils/articleStore';
+import { saveUploadedArticle, deleteUploadedArticle } from '../../utils/articleStore';
 import { loadUploadedArticles } from '../../utils/articleStore';
 import { toast } from 'sonner';
+import ArticleIcon from './ui/ArticleIcon';
 
 type ViewMode = 'grid' | 'list';
 
@@ -51,10 +52,17 @@ export default function Library() {
         if (prev >= 100) {
           clearInterval(interval);
           const newArticle: Article = {
-            ...mockArticles[0],
             id: `upload-${Date.now()}`,
             title: files[0].name.replace('.pdf', ''),
+            authors: ['Uploaded'],
+            abstract: '',
             uploadDate: new Date().toISOString().split('T')[0],
+            pdfUrl: '#',
+            topics: [],
+            methodology: 'Unknown',
+            keyFindings: [],
+            citations: 0,
+            year: new Date().getFullYear(),
           };
           setArticles((p) => [newArticle, ...p]);
           try { saveUploadedArticle(newArticle); } catch {}
@@ -70,6 +78,14 @@ export default function Library() {
   };
 
   const bestMatchId = [...articles].sort((a, b) => b.citations - a.citations)[0]?.id;
+
+  const handleDeleteArticle = (id: string) => {
+    // remove from local state
+    setArticles((prev) => prev.filter(a => a.id !== id));
+    // remove from persisted uploads if present
+    try { deleteUploadedArticle(id); } catch (e) {}
+    toast.success('Article deleted');
+  };
 
   // Similar-article suggestions: pick top-cited from each top topic in the library
   const topTopics = (() => {
@@ -119,7 +135,7 @@ export default function Library() {
                 <BookOpen className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h1 className="font-bold text-foreground text-xl">My Research Library</h1>
+                <h1 className="font-bold text-foreground text-xl">All Articles</h1>
                 <p className="text-sm text-muted-foreground">{articles.length} articles · {filteredArticles.length} shown</p>
               </div>
             </div>
@@ -186,51 +202,12 @@ export default function Library() {
           </div>
         </div>
       </div>
-
+      
+      
       {/* Articles */}
       <div className="max-w-6xl mx-auto px-6 py-8 space-y-6">
 
-        {/* Similar-article suggestions */}
-        {suggestions.length > 0 && (
-          <section className="bg-card rounded-2xl border border-border shadow-sm p-5">
-            <div className="flex items-center gap-3 mb-4 pb-3 border-b border-border">
-              <div className="p-2.5 bg-muted border border-border rounded-xl shadow-sm">
-                <Sparkles className="w-5 h-5 text-red-600" />
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-foreground">Suggested Similar Articles</h2>
-                <p className="text-xs text-muted-foreground mt-0.5 font-medium">
-                  Suggested from external, reliable sources — items are verified as real articles (they may be slightly less up‑to‑date). Source selection is TBD.
-                </p>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {suggestions.map((a) => (
-                <div
-                  key={a.id}
-                  className="bg-muted/40 border border-border rounded-xl p-4 hover:bg-muted/70 hover:border-red-300 transition-colors cursor-pointer"
-                  onClick={() => toast.success(`Opened "${a.title}"`)}
-                >
-                  <div className="flex items-start gap-2 mb-2">
-                    <FileText className="w-4 h-4 text-red-600 mt-0.5 shrink-0" />
-                    <p className="text-sm font-bold text-foreground line-clamp-2">{a.title}</p>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground font-medium mb-2 truncate">
-                    {a.authors[0]}{a.authors.length > 1 ? ' et al.' : ''} • {a.year}
-                  </p>
-                  <div className="flex flex-wrap gap-1">
-                    {a.topics.slice(0, 2).map((t) => (
-                      <span key={t} className="px-2 py-0.5 bg-card border border-border text-foreground rounded-full text-[10px] font-medium">{t}</span>
-                    ))}
-                    <span className="ml-auto text-[10px] text-muted-foreground flex items-center gap-1">
-                      <TrendingUp className="w-3 h-3" /> {a.citations}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
+          {/* Similar-article suggestions moved to end of page */}
 
         {filteredArticles.length === 0 ? (
           <div className="bg-card border border-border rounded-2xl p-12 text-center shadow-sm">
@@ -293,28 +270,33 @@ export default function Library() {
                       onClick={() => setExpandedId(isExpanded ? null : article.id)}
                       className="w-full flex items-center justify-between text-xs font-bold text-muted-foreground hover:text-foreground transition-colors mb-2"
                     >
-                      <span>Abstract & Key Findings</span>
+                      <span>Auto-Summary</span>
                       {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                     </button>
                     {isExpanded && (
                       <div className="space-y-3 mt-2 border-t border-border pt-3">
-                        <p className="text-xs text-muted-foreground leading-relaxed">{article.abstract}</p>
-                        <div>
-                          <p className="text-[11px] font-bold text-foreground uppercase tracking-wider mb-1.5">Key Findings</p>
-                          <ul className="space-y-1">
-                            {article.keyFindings.map((f, i) => (
-                              <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
-                                <span className="w-1.5 h-1.5 bg-red-400 rounded-full mt-1.5 flex-shrink-0" />
-                                <span className="text-xs text-muted-foreground leading-relaxed">{f}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                        <p className="text-[11px] font-medium text-muted-foreground">
-                          <span className="font-bold text-muted-foreground">Methodology: </span>{article.methodology}
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          {(() => {
+                            const a = article.abstract?.trim();
+                            if (a && a.length > 0) {
+                              return a.split('.').slice(0, 2).join('. ') + (a.split('.').length > 2 ? '…' : '');
+                            }
+                            return article.keyFindings?.slice(0, 2).join('; ') || 'No summary available.';
+                          })()}
                         </p>
                       </div>
                     )}
+
+                    {/* Delete button for each article */}
+                    <div className="mt-3 flex justify-end">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleDeleteArticle(article.id); }}
+                        className="p-2 rounded-lg text-muted-foreground hover:text-red-600 transition-colors"
+                        title="Delete article"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
 
                   </div>
                 </div>
@@ -333,9 +315,12 @@ export default function Library() {
                     idx < filteredArticles.length - 1 ? 'border-b border-border' : ''
                   } ${isBest ? 'bg-amber-50/50' : ''}`}
                 >
-                  <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <FileText className="w-5 h-5 text-slate-600" />
-                  </div>
+                  <ArticleIcon size="md" title="Article">
+                    <FileText className="w-5 h-5 text-current" />
+                  </ArticleIcon>
+                  <button onClick={(e) => { e.stopPropagation(); handleDeleteArticle(article.id); }} className="p-2 text-muted-foreground hover:text-red-600 rounded-md" title="Delete">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
                       <h3 className="font-bold text-foreground text-sm truncate">{article.title}</h3>
@@ -357,6 +342,27 @@ export default function Library() {
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* Suggested Similar Articles - shown once at page end */}
+        {suggestions.length > 0 && (
+          <div className="bg-card border border-border rounded-2xl p-5 shadow-sm">
+            <h2 className="font-bold text-foreground text-lg mb-2">Suggested Similar Articles</h2>
+            <p className="text-sm text-muted-foreground mb-3">Based on popular topics in your library</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {suggestions.map((s) => (
+                <div key={s.id} className="flex items-center gap-3 p-3 bg-muted rounded-lg border border-border">
+                  <ArticleIcon size="sm" title={s.title}>
+                    <FileText className="w-4 h-4 text-current" />
+                  </ArticleIcon>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-sm truncate">{s.title}</div>
+                    <div className="text-xs text-muted-foreground">{s.authors[0]} · {s.year}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>

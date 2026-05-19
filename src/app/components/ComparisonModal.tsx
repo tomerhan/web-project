@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { Article } from '../data/mockData';
 import { toast } from 'sonner';
+import ArticleIcon from './ui/ArticleIcon';
 import { RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Legend } from 'recharts';
 
 interface ComparisonModalProps {
@@ -142,8 +143,10 @@ export default function ComparisonModal({ articles, onClose }: ComparisonModalPr
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-white flex-shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center text-red-600">
-              <GitCompare className="w-5 h-5" />
+            <div>
+              <ArticleIcon size="md" title="Comparison">
+                <GitCompare className="w-5 h-5 text-current" />
+              </ArticleIcon>
             </div>
             <div>
               <h2 className="font-bold text-slate-900 text-lg">Article Comparison</h2>
@@ -153,6 +156,16 @@ export default function ComparisonModal({ articles, onClose }: ComparisonModalPr
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                const detail = { articleIds: articles.map(a => a.id), name: `Comparison: ${articles.map(a => a.title).slice(0,2).join(' / ')}` };
+                window.dispatchEvent(new CustomEvent('create-chat-from-comparison', { detail }));
+                onClose();
+              }}
+              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold mr-2"
+            >
+              Create Chat
+            </button>
             {/* How AI got this */}
             <button
               onClick={() => setShowExplanation(!showExplanation)}

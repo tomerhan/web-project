@@ -24,6 +24,9 @@ import GuidingQuestionsBlock from './GuidingQuestionsBlock';
 import StudentPerformancePanel from './StudentPerformancePanel';
 // Import toast notification library
 import { toast } from 'sonner';
+import { getShortSummary } from '../../utils/textUtils';
+import ArticleIcon from './ui/ArticleIcon';
+import { CHAT_LABEL } from '../config/nav';
 
 // Interface defining the structure of an article group for organizing research papers
 interface ArticleGroup {
@@ -106,7 +109,7 @@ export default function ChatInterface() {
 
   // State for selected articles and analysis depth
   const [selectedArticles, setSelectedArticles] = useState<Set<string>>(
-    new Set([mockArticles[0].id])
+    new Set()
   );
   const [analysisDepth,  setAnalysisDepth]  = useState<1 | 2 | 3>(2);
 
@@ -178,6 +181,8 @@ export default function ChatInterface() {
 
   // Helper function to convert analysis depth number to human-readable label
   const getDepthLabel = (v: number) => (v === 1 ? 'Fast' : v === 2 ? 'Regular' : 'Deep');
+
+  // use getShortSummary from utils
 
   // (carousel removed) — navigation now via two fixed columns (Comparisons | Analyzed)
 
@@ -414,7 +419,7 @@ export default function ChatInterface() {
               </svg>
             </div>
             <div>
-              <h1 className="font-bold text-foreground">Research Chat</h1>
+              <h1 className="font-bold text-foreground">{CHAT_LABEL}</h1>
               <p className="text-xs text-muted-foreground">
                 {selectedArticles.size} article{selectedArticles.size !== 1 && 's'} in context
               </p>
@@ -578,9 +583,9 @@ export default function ChatInterface() {
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-5 border-b border-border pb-4">
               <div className="flex items-center justify-between w-full lg:w-auto">
                 <div className="flex items-center gap-3">
-                  <div className="p-2.5 bg-muted border border-border rounded-xl shadow-sm">
-                    <FileText className="w-5 h-5 text-red-600" />
-                  </div>
+                  <ArticleIcon size="md" title="Article">
+                    <FileText className="w-5 h-5 text-current" />
+                  </ArticleIcon>
                   <div>
                     <h2 className="text-lg font-bold text-foreground">
                       {isLecturerView ? 'Articles Read' : 'Library'}
@@ -631,7 +636,7 @@ export default function ChatInterface() {
               if (analyzedOnly.length === 0) {
                 return (
                   <div className="py-12 text-center text-muted-foreground bg-muted/50 rounded-xl border border-dashed border-border">
-                    <p className="text-sm font-bold">No analyzed articles yet</p>
+                    <p className="text-sm font-bold">No articles in Research Chat yet</p>
                     <p className="text-xs mt-1">Select a paper and click Analyze to see it here.</p>
                   </div>
                 );
@@ -695,12 +700,12 @@ export default function ChatInterface() {
                               }}
                               className={`flex-1 flex flex-col bg-muted/80 border border-border/60 rounded-lg p-3 mb-3 transition-colors ${canExpand ? 'cursor-pointer hover:bg-muted/90' : ''}`}
                             >
-                              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1 flex items-center gap-1.5 shrink-0">
-                                <AlignLeft className="w-3 h-3 text-red-500" /> Auto-Summary
-                              </span>
-                              <p className={`text-xs text-foreground/80 leading-relaxed ${isExpanded ? '' : 'line-clamp-2'}`}>
-                                {summaryText}
-                              </p>
+                                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1 flex items-center gap-1.5 shrink-0">
+                                        <AlignLeft className="w-3 h-3 text-red-500" /> Auto-Summary
+                                      </span>
+                                      <p className={`text-xs text-foreground/80 leading-relaxed ${isExpanded ? '' : 'line-clamp-2'}`}>
+                                        {getShortSummary(article)}
+                                      </p>
                               {canExpand && <span className="text-[10px] text-blue-500 font-medium mt-1">{isExpanded ? 'Show less' : 'Show more'}</span>}
                             </div>
 
@@ -797,7 +802,7 @@ export default function ChatInterface() {
             const t = analysisType;
             setAnalyzedArticles((prev) => new Set([...prev, ...selectedArticles]));
             if (t === 'compare') setComparedArticles((prev) => new Set([...prev, ...selectedArticles]));
-            // Demo flag — forces Chat Analyzer bar to 100% so the celebration effect is visible
+            // Demo flag — forces Research Chat bar to 100% so the celebration effect is visible
             try { localStorage.setItem('demo-comprehension-100', '1'); } catch {}
             window.dispatchEvent(new CustomEvent('comprehension-demo-100'));
             setAnalysisType(null);

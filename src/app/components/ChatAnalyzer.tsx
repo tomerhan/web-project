@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Send, Sparkles, FileText, MessageSquare, MoreVertical, BookmarkPlus, Check } from 'lucide-react';
+import { Send, Sparkles, FileText, MessageSquare, MoreVertical, BookmarkPlus, Check, Edit, X } from 'lucide-react';
 import { ChatMessage, mockArticles, mockChatHistory } from '../data/mockData';
 import { loadUploadedArticles } from '../../utils/articleStore';
 import { toast } from 'sonner';
@@ -11,16 +11,28 @@ interface ArticleGroup {
 }
 
 export default function ChatAnalyzer() {
-  const [messages, setMessages] = useState<ChatMessage[]>(mockChatHistory);
+  const [messages, setMessages] = useState<ChatMessage[]>(() => {
+    try {
+      const raw = localStorage.getItem('chat_analyzer_messages_v1');
+      if (raw) return JSON.parse(raw) as ChatMessage[];
+    } catch (e) { /* ignore */ }
+    return [];
+  });
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const chatRef = useRef<HTMLDivElement>(null);
 
   // Article groups — restored from original chat container
-  const [groups, setGroups] = useState<ArticleGroup[]>([
-    { id: 'g1', name: 'AI & NLP Research', articleIds: mockArticles.slice(0, 3).map(a => a.id) },
-    { id: 'g2', name: 'Climate & Energy', articleIds: mockArticles.slice(3, 5).map(a => a.id) },
-  ]);
+  const [groups, setGroups] = useState<ArticleGroup[]>(() => {
+    try {
+      const raw = localStorage.getItem('analysis_groups_v1');
+      if (raw) return JSON.parse(raw) as ArticleGroup[];
+    } catch (e) { /* ignore */ }
+    return [
+      { id: 'g1', name: 'AI & NLP Research', articleIds: mockArticles.slice(0, 3).map(a => a.id) },
+      { id: 'g2', name: 'Climate & Energy', articleIds: mockArticles.slice(3, 5).map(a => a.id) },
+    ];
+  });
   const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
   const [showStatsMenu, setShowStatsMenu] = useState(false);
   const [isCreatingGroup, setIsCreatingGroup] = useState(false);
@@ -89,6 +101,41 @@ export default function ChatAnalyzer() {
     }
   }, [comprehensionPercent]);
 
+  // If a resumed session was set by HistoryPage, create a temporary group and activate it
+  useEffect(() => {
+    try {
+      const resumedId = localStorage.getItem('resumed_session_id');
+      const rawIds = localStorage.getItem('resumed_session_article_ids');
+      const resumedName = localStorage.getItem('resumed_session_name');
+      if (resumedId && rawIds) {
+        const ids = JSON.parse(rawIds) as string[];
+        if (ids && ids.length > 0) {
+          const gid = `resumed-${Date.now()}`;
+          const g: ArticleGroup = { id: gid, name: resumedName || 'Resumed Session', articleIds: ids };
+          setGroups((p) => [g, ...p]);
+          setActiveGroupId(gid);
+          setIsResumedMode(true);
+          toast.success('Resumed session loaded');
+        }
+      }
+    } catch (e) { /* ignore */ }
+    try { localStorage.removeItem('resumed_session_id'); localStorage.removeItem('resumed_session_article_ids'); } catch {}
+  }, []);
+
+  // Editable group title state
+  const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
+  const [editingGroupName, setEditingGroupName] = useState('');
+  const [isResumedMode, setIsResumedMode] = useState(false);
+  const [analysisDepth, setAnalysisDepth] = useState<1|2|3>(2);
+  const [chatCreated, setChatCreated] = useState(false);
+
+  // Persist groups so renamed groups survive reload
+  useEffect(() => {
+    try { localStorage.setItem('analysis_groups_v1', JSON.stringify(groups)); } catch (e) { /* ignore */ }
+  }, [groups]);
+
+  // Always show full answers in chat (no show more/less)
+
   const send = () => {
     const text = inputMessage.trim();
     if (!text) return;
@@ -117,6 +164,28 @@ export default function ChatAnalyzer() {
     }, 1500);
   };
 
+  // Persist messages to localStorage so other views (History) can read them
+  useEffect(() => {
+    try { localStorage.setItem('chat_analyzer_messages_v1', JSON.stringify(messages)); } catch (e) { /* ignore */ }
+  }, [messages]);
+
+  // Listen for comparison -> create chat events
+  useEffect(() => {
+    const handler = (e: any) => {
+      const detail = e?.detail;
+      if (!detail || !detail.articleIds) return;
+      const gid = `comp-${Date.now()}`;
+      const g = { id: gid, name: detail.name || 'Comparison Chat', articleIds: detail.articleIds } as ArticleGroup;
+      setGroups((p) => [g, ...p]);
+      setActiveGroupId(gid);
+      setIsResumedMode(true);
+      if (detail.messages) setMessages(detail.messages as any);
+      toast.success('Chat created from comparison');
+    };
+    window.addEventListener('create-chat-from-comparison', handler as EventListener);
+    return () => window.removeEventListener('create-chat-from-comparison', handler as EventListener);
+  }, []);
+
   return (
     <div className="flex flex-col h-full w-full bg-background overflow-hidden">
       <header className="bg-card border-b border-border px-5 py-3.5 flex items-center justify-between shrink-0 z-10 shadow-sm">
@@ -130,6 +199,47 @@ export default function ChatAnalyzer() {
           </div>
         </div>
       </header>
+
+      {/* Control bar: select difficulty + create chat */}
+      {!chatCreated && (
+        <div className="bg-card border-t border-border px-5 h-26.5 flex items-center shadow-lg">
+          <div className="max-w-6xl mx-auto w-full flex items-center gap-4">
+            <div className="text-sm font-medium text-foreground">{activeGroup ? `${activeGroup.articleIds.length} article${activeGroup.articleIds.length !== 1 ? 's' : ''} selected` : 'No articles selected'}</div>
+            <div className="flex-1">
+              <div className="text-[11px] text-muted-foreground mb-1 font-semibold uppercase tracking-wide">Difficulty</div>
+              <input
+                type="range"
+                min={1}
+                max={3}
+                value={analysisDepth}
+                onChange={(e) => setAnalysisDepth(Number(e.target.value) as 1|2|3)}
+                className="w-full"
+              />
+              <div className="text-xs text-muted-foreground flex justify-between mt-1">
+                <span>Fast</span><span>Regular</span><span>Deep</span>
+              </div>
+            </div>
+            <div>
+              <button
+                onClick={() => {
+                  const articleIds = activeGroup ? activeGroup.articleIds : [];
+                  if (!articleIds || articleIds.length === 0) { toast.error('Select articles first'); return; }
+                  const gid = `live-${Date.now()}`;
+                  const g = { id: gid, name: activeGroup?.name || 'Live Session', articleIds } as ArticleGroup;
+                  setGroups((p) => [g, ...p]);
+                  setActiveGroupId(gid);
+                  setChatCreated(true);
+                  setMessages([]);
+                  toast.success('Chat created');
+                }}
+                className="px-4 py-2 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700"
+              >
+                Create Chat
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="flex-1 flex overflow-hidden bg-muted min-h-0">
         {/* Left bar — comprehension % with 100% celebration */}
@@ -151,7 +261,7 @@ export default function ChatAnalyzer() {
           )}
           <span className={`text-[10px] font-bold uppercase tracking-wide relative ${
             comprehensionPercent === 100 ? 'text-red-600 dark:text-red-300 mt-5' : 'text-muted-foreground'
-          }`}>הבנה</span>
+          }`}>Comprehension</span>
           <span className={`text-sm font-bold tabular-nums relative ${
             comprehensionPercent === 100 ? 'text-red-600 dark:text-red-300 text-base' : 'text-foreground'
           }`}>{comprehensionPercent}%</span>
@@ -182,29 +292,36 @@ export default function ChatAnalyzer() {
         <div className="flex-1 overflow-y-auto p-4 md:p-6 min-w-0">
           <section className="bg-card rounded-2xl shadow-sm border border-border flex flex-col h-[500px] overflow-hidden">
             <div className="bg-card px-5 py-4 border-b border-border flex items-center justify-between flex-shrink-0 gap-4 w-full min-w-0">
-              <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-2 shrink-0">
                 <Sparkles className="w-5 h-5 text-slate-600" />
-                <span className="font-bold text-foreground">Analysis Chat</span>
+                <span className="font-bold text-foreground">Chat Analyzer</span>
               </div>
 
               {/* Group tabs */}
               <div className="w-0 flex-1 overflow-x-auto overflow-y-hidden py-1 flex items-center gap-1.5 min-w-0 whitespace-nowrap">
-                {groups.map((g) => (
-                  <button
-                    key={g.id}
-                    onClick={() => setActiveGroupId(activeGroupId === g.id ? null : g.id)}
-                    className={`flex-none px-3 py-1.5 text-xs font-bold rounded-lg transition-all border whitespace-nowrap ${
-                      activeGroupId === g.id
-                        ? 'bg-blue-600 text-white border-blue-600 shadow-md'
-                        : 'bg-card text-foreground border-border hover:bg-muted'
-                    }`}
-                  >
-                    {g.name}
-                  </button>
-                ))}
-              </div>
+                    {isResumedMode && activeGroup ? (
+                      <div className="flex-none px-3 py-1.5 text-xs font-bold rounded-lg transition-all border whitespace-nowrap bg-blue-600 text-white border-blue-600 shadow-md">
+                        {activeGroup.name}
+                      </div>
+                    ) : (
+                      groups.map((g) => (
+                        <button
+                          key={g.id}
+                          onClick={() => setActiveGroupId(activeGroupId === g.id ? null : g.id)}
+                          className={`flex-none px-3 py-1.5 text-xs font-bold rounded-lg transition-all border whitespace-nowrap ${
+                            activeGroupId === g.id
+                              ? 'bg-blue-600 text-white border-blue-600 shadow-md'
+                              : 'bg-card text-foreground border-border hover:bg-muted'
+                          }`}
+                        >
+                          {g.name}
+                        </button>
+                      ))
+                    )}
+                  </div>
 
               {/* 3-dot menu — attach a group of articles to discuss */}
+              {!isResumedMode && (
               <div className="relative shrink-0">
                 <button
                   onClick={() => setShowStatsMenu((v) => !v)}
@@ -246,12 +363,31 @@ export default function ChatAnalyzer() {
                   </div>
                 )}
               </div>
+              )}
             </div>
 
             {/* Active group context bar */}
             {activeGroup && (
               <div className="px-5 py-2 border-b border-border bg-blue-50/50 dark:bg-blue-950/20 flex items-center gap-2 flex-wrap">
-                <span className="text-[10px] font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wide">Discussing:</span>
+                <div className="flex items-center gap-3">
+                  {editingGroupId === activeGroup.id ? (
+                    <div className="flex items-center gap-2">
+                      <input value={editingGroupName} onChange={(e) => setEditingGroupName(e.target.value)} className="px-3 py-1 rounded-lg border bg-background text-foreground" />
+                      <button onClick={() => {
+                        setGroups((prev) => prev.map(g => g.id === activeGroup.id ? { ...g, name: editingGroupName || g.name } : g));
+                        setEditingGroupId(null);
+                        setEditingGroupName('');
+                        toast.success('Group name updated');
+                      }} className="p-1 text-green-600"><Check className="w-4 h-4" /></button>
+                      <button onClick={() => { setEditingGroupId(null); setEditingGroupName(''); }} className="p-1 text-muted-foreground"><X className="w-4 h-4" /></button>
+                    </div>
+                      ) : (
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-bold text-blue-700 dark:text-blue-300">{activeGroup.name}</h3>
+                      <button onClick={() => { setEditingGroupId(activeGroup.id); setEditingGroupName(activeGroup.name); }} className="p-1 text-muted-foreground" title="Edit group name"><Edit className="w-4 h-4" /></button>
+                    </div>
+                  )}
+                </div>
                 {activeGroupArticles.map((a) => (
                   <span key={a.id} className="text-[10px] font-medium text-foreground bg-card border border-border rounded-full px-2 py-0.5 flex items-center gap-1">
                     <FileText className="w-2.5 h-2.5 text-blue-600" />

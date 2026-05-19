@@ -81,7 +81,7 @@ export default function AnalysisResultsModal({ articles, depth, onClose }: Analy
                 <div className="flex items-start gap-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800">
                   <CheckCircle2 className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
                   <div className="text-xs text-amber-800 dark:text-amber-200">
-                    Charts and detailed data are visible to your lecturer only. Continue practicing in the Chat Analyzer.
+                    Charts and detailed data are visible to your lecturer only. Continue practicing in the Research Chat.
                   </div>
                 </div>
 
