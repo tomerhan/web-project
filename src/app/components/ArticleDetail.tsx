@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ArrowLeft, MessageSquare, FileText, Users, Calendar, TrendingUp, Send, Download, Share2, BookOpen, Sparkles } from 'lucide-react';
 import { mockArticles, mockChatHistory, ChatMessage, Article } from '../data/mockData';
+import { loadUploadedArticles } from '../../utils/articleStore';
 
 interface ArticleDetailProps {
   articleId: string;
@@ -8,7 +9,10 @@ interface ArticleDetailProps {
 }
 
 export default function ArticleDetail({ articleId, onNavigate }: ArticleDetailProps) {
-  const article = mockArticles.find(a => a.id === articleId);
+  const allArticles = (() => {
+    try { const stored = loadUploadedArticles(); return [...stored, ...mockArticles.filter(m => !stored.find(s => s.id === m.id))]; } catch { return mockArticles; }
+  })();
+  const article = allArticles.find(a => a.id === articleId);
   const [messages, setMessages] = useState<ChatMessage[]>(
     mockChatHistory.filter(m => m.articleId === articleId)
   );

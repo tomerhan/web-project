@@ -206,7 +206,7 @@ export default function ComparisonModal({ articles, onClose }: ComparisonModalPr
         )}
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 flex flex-col min-w-0 min-h-0 relative overflow-hidden">
 
           {/* ═══ Visual Comparison Metrics ═══ */}
           <div className="px-6 pt-5 pb-4 space-y-5">
@@ -318,36 +318,44 @@ export default function ComparisonModal({ articles, onClose }: ComparisonModalPr
             </div>
           </div>
 
-          {/* Article header cards */}
-          <div className="px-6 pt-5 pb-3 grid gap-4" style={{ gridTemplateColumns: `200px repeat(${articles.length}, 1fr)` }}>
-            <div />
-            {articles.map((article, idx) => (
-              <div
-                key={article.id}
-                className={`rounded-xl p-4 border-2 ${
-                  idx === bestMatchIdx
-                    ? 'border-amber-400 bg-amber-50'
-                    : 'border-slate-200 bg-slate-50'
-                }`}
-              >
-                {idx === bestMatchIdx && (
-                  <div className="flex items-center gap-1 mb-2">
-                    <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-                    <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider">Best Match</span>
+          {/* Article header cards (responsive flex row for screen) */}
+          <div className="px-6 pt-5 pb-3">
+            <div className="flex-1 flex flex-col min-w-0 min-h-0 relative overflow-hidden">
+              <div className="flex items-start gap-4">
+                <div className="w-[200px] flex-shrink-0" />
+                <div className="flex-1 overflow-x-auto">
+                  <div className="flex gap-4 min-w-max">
+                    {articles.map((article, idx) => (
+                      <div
+                        key={article.id}
+                        className={`bg-card rounded-2xl shadow-sm p-5 ${
+                          idx === bestMatchIdx
+                            ? 'border-amber-400 border-2 bg-amber-50'
+                            : 'border border-border'
+                        } w-72 flex-shrink-0`}
+                      >
+                        {idx === bestMatchIdx && (
+                          <div className="flex items-center gap-1 mb-2">
+                            <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                            <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider">Best Match</span>
+                          </div>
+                        )}
+                        <h3 className="font-bold text-slate-900 text-sm leading-tight line-clamp-3 mb-2">
+                          {article.title}
+                        </h3>
+                        <p className="text-[11px] text-slate-500 font-medium">
+                          {article.authors[0]} et al. · {article.year}
+                        </p>
+                        <div className="mt-2 flex items-center gap-1">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase">Citations:</span>
+                          <span className="text-xs font-bold text-red-600">{article.citations}</span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                )}
-                <h3 className="font-bold text-slate-900 text-sm leading-tight line-clamp-3 mb-2">
-                  {article.title}
-                </h3>
-                <p className="text-[11px] text-slate-500 font-medium">
-                  {article.authors[0]} et al. · {article.year}
-                </p>
-                <div className="mt-2 flex items-center gap-1">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase">Citations:</span>
-                  <span className="text-xs font-bold text-red-600">{article.citations}</span>
                 </div>
               </div>
-            ))}
+            </div>
           </div>
 
           {/* Comparison table */}

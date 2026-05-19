@@ -104,7 +104,7 @@ export default function SinglePDFViewer({ article, onClose }: SinglePDFViewerPro
 
   const renderPdfPage = () => {
     return (
-      <div className="flex-1 bg-card rounded-lg shadow-lg border border-border overflow-hidden flex flex-col">
+      <div className="flex-1 bg-card dark:bg-white rounded-lg overflow-hidden flex flex-col border-2 border-red-500 shadow-[0_0_15px_rgba(220,38,38,0.18)]">
         {/* Inner PDF Header */}
         <div className="bg-muted px-6 py-4 border-b border-border flex items-center justify-between">
           <div className="flex items-center gap-3">

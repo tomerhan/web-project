@@ -9,6 +9,8 @@ import {
 } from 'lucide-react';
 // Import mock data and types for articles and chat messages
 import { mockArticles, mockChatHistory, ChatMessage, Article } from '../data/mockData';
+import { loadUploadedArticles } from '../../utils/articleStore';
+import { saveUploadedArticle } from '../../utils/articleStore';
 // Import authentication context to check user role
 import { useAuth } from '../context/AuthContext';
 // Import routing hooks for navigation
@@ -58,7 +60,13 @@ export default function ChatInterface() {
   const [, setIsTyping]                       = useState(false);
 
   // State for uploaded files and upload progress
-  const [uploadedFiles,   setUploadedFiles]   = useState<Article[]>(mockArticles);
+  const [uploadedFiles,   setUploadedFiles]   = useState<Article[]>(() => {
+    try {
+      const stored = loadUploadedArticles();
+      if (!stored || stored.length === 0) return mockArticles;
+      return [...stored, ...mockArticles.filter(m => !stored.find(s => s.id === m.id))];
+    } catch (e) { return mockArticles; }
+  });
   const [uploadProgress,  setUploadProgress]  = useState<number | null>(null);
 
   // State for UI modals and menus
@@ -66,9 +74,16 @@ export default function ChatInterface() {
   const [showUserMenu,        setShowUserMenu]        = useState(false);
   const [analysisType,        setAnalysisType]        = useState<'analyze' | 'compare' | null>(null);
   // Track which article IDs have completed analysis. Lecturer sees student's history → all marked analyzed.
-  const [analyzedArticles,    setAnalyzedArticles]    = useState<Set<string>>(() =>
-    user?.role === 'lecturer' ? new Set(mockArticles.map(a => a.id)) : new Set()
-  );
+  const [analyzedArticles,    setAnalyzedArticles]    = useState<Set<string>>(() => {
+    if (user?.role === 'lecturer') return new Set(mockArticles.map(a => a.id));
+    try {
+      const stored = loadUploadedArticles();
+      const all = [...stored, ...mockArticles.filter(m => !stored.find(s => s.id === m.id))];
+      return new Set(all.map(a => a.id));
+    } catch (e) {
+      return new Set(mockArticles.map(a => a.id));
+    }
+  });
   // Articles that have been part of a Compare action
   const [comparedArticles,    setComparedArticles]    = useState<Set<string>>(() =>
     user?.role === 'lecturer' ? new Set([mockArticles[0]?.id, mockArticles[1]?.id].filter(Boolean) as string[]) : new Set()
@@ -149,14 +164,30 @@ export default function ChatInterface() {
   // Reference to chat container for scrolling
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
+  // Listen for uploads from other components (Library) and add them to uploadedFiles and analyzed set
+  useEffect(() => {
+    const handler = (e: any) => {
+      const a: Article | undefined = e?.detail;
+      if (!a) return;
+      setUploadedFiles((prev) => [a, ...prev.filter(x => x.id !== a.id)]);
+      setAnalyzedArticles((prev) => new Set([...prev, a.id]));
+    };
+    window.addEventListener('uploaded-article', handler as EventListener);
+    return () => window.removeEventListener('uploaded-article', handler as EventListener);
+  }, []);
+
   // Helper function to convert analysis depth number to human-readable label
   const getDepthLabel = (v: number) => (v === 1 ? 'Fast' : v === 2 ? 'Regular' : 'Deep');
 
-  // Function to scroll the articles carousel left or right
+  // (carousel removed) — navigation now via two fixed columns (Comparisons | Analyzed)
+
+  // Restore carousel helpers: arrow class and scroll function
+  const arrowBtnClass = 'p-2 rounded-full bg-muted text-muted-foreground hover:bg-blue-100 hover:text-blue-600 hover:border-blue-300 hover:shadow-md hover:scale-110 transition-all';
   const scrollRow = (direction: 'left' | 'right') => {
     const container = document.getElementById('articles-carousel');
     if (container) {
-      const scrollAmount = container.clientWidth;
+      // Scroll by one full viewport width so the carousel advances by two cards
+      const scrollAmount = Math.floor(container.clientWidth);
       container.scrollBy({ left: direction === 'left' ? -scrollAmount : scrollAmount, behavior: 'smooth' });
     }
   };
@@ -275,8 +306,11 @@ export default function ChatInterface() {
             year:       new Date().getFullYear(),
             uploadDate: new Date().toISOString().split('T')[0],
           };
-          setUploadedFiles((prev) => [na, ...prev]);
-          setSelectedArticles((prev) => new Set([...prev, na.id]));
+            setUploadedFiles((prev) => [na, ...prev]);
+              try { saveUploadedArticle(na); } catch {}
+              // mark newly uploaded article as analyzed so it appears in the analyzed carousel
+              setAnalyzedArticles((prev) => new Set([...prev, na.id]));
+            setSelectedArticles((prev) => new Set([...prev, na.id]));
           toast.success(`"${files[0].name}" added to library`);
           setTimeout(() => setUploadProgress(null), 600);
           return 100;
@@ -556,14 +590,7 @@ export default function ChatInterface() {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 lg:hidden">
-                  <button onClick={() => scrollRow('left')} className="p-2 rounded-full bg-muted text-muted-foreground hover:bg-blue-100 hover:text-blue-600 hover:border-blue-300 hover:shadow-md hover:scale-110 transition-all">
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-                  <button onClick={() => scrollRow('right')} className="p-2 rounded-full bg-muted text-muted-foreground hover:bg-blue-100 hover:text-blue-600 hover:border-blue-300 hover:shadow-md hover:scale-110 transition-all">
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
+                {/* arrows removed here to keep single pair near carousel */}
               </div>
               
               <div className="flex flex-wrap items-center gap-3">
@@ -583,21 +610,23 @@ export default function ChatInterface() {
                   <option value="oldest">Oldest First</option>
                   <option value="title">A-Z (Title)</option>
                 </select>
-                <div className="hidden lg:flex items-center gap-2 ml-2">
-                  <button onClick={() => scrollRow('left')} className="p-2 rounded-full bg-muted text-muted-foreground hover:bg-blue-100 hover:text-blue-600 hover:border-blue-300 hover:shadow-md hover:scale-110 transition-all">
+                {/* arrows: moved next to selection box as requested */}
+                <div className="flex items-center gap-2">
+                  <button onClick={() => scrollRow('left')} className={arrowBtnClass} aria-label="Scroll left">
                     <ChevronLeft className="w-4 h-4" />
                   </button>
-                  <button onClick={() => scrollRow('right')} className="p-2 rounded-full bg-muted text-muted-foreground hover:bg-blue-100 hover:text-blue-600 hover:border-blue-300 hover:shadow-md hover:scale-110 transition-all">
+                  <button onClick={() => scrollRow('right')} className={arrowBtnClass} aria-label="Scroll right">
                     <ChevronRight className="w-4 h-4" />
                   </button>
                 </div>
               </div>
             </div>
 
-            {(() => {
-              const analyzedOnly = displayedArticles.filter((a) => analyzedArticles.has(a.id));
+              {(() => {
+              // For lecturer view, show all displayed articles under "Articles Read".
+              const analyzedOnly = isLecturerView ? displayedArticles : displayedArticles.filter((a) => analyzedArticles.has(a.id));
               const comparisonArticles = analyzedOnly.filter((a) => comparedArticles.has(a.id));
-              const analyzedColumnArticles = analyzedOnly.filter((a) => !comparedArticles.has(a.id));
+              const analyzedColumnArticles = isLecturerView ? analyzedOnly : analyzedOnly.filter((a) => !comparedArticles.has(a.id));
 
               if (analyzedOnly.length === 0) {
                 return (
@@ -608,128 +637,98 @@ export default function ChatInterface() {
                 );
               }
 
-              const renderCardList = (items: typeof analyzedOnly) => items.map((article) => {
-                    const isSelected = selectedArticles.has(article.id);
-                    const isExpanded = expandedSummaryId === article.id;
-                    const summaryText = (article as any).summary || 'This paper explores the core methodologies and practical challenges in the field, proposing a novel framework to address data limitations. It offers deep insights into AI architecture and expands upon previous literature by demonstrating robust accuracy enhancements across multiple diverse data sets, setting a new benchmark for future comparative studies and implementations.';
-                    
-                    const canExpand = summaryText.length > 120;
-                    
-                    return (
-                      <div
-                        key={article.id}
-                        onClick={() => !isLecturerView && toggleArticleSelection(article.id)}
-                        className={`w-full relative flex flex-col p-4 rounded-xl border-2 transition-all cursor-pointer group min-h-[260px] ${
-                           isLecturerView
-                             ? 'border-border bg-card shadow-sm cursor-default'
-                             : isSelected
-                             ? 'border-red-500 bg-card shadow-[0_0_15px_rgba(220,38,38,0.18)] dark:border-white dark:bg-slate-900/60 dark:shadow-[0_0_15px_rgba(255,255,255,0.15)]'
-                             : 'border-border bg-card hover:border-red-300 hover:bg-muted/40 dark:border-slate-800 dark:bg-slate-900/40 dark:hover:border-slate-700 dark:hover:bg-slate-800/60 shadow-sm'
-                        }`}
-                      >
-                        {!isLecturerView && (
-                          <div className="absolute top-4 right-4 z-10">
-                            <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${isSelected ? 'bg-red-500 border-red-500 dark:bg-white dark:border-white' : 'border-border bg-card dark:border-slate-600 dark:bg-slate-800'}`}>
-                              {isSelected && <Check className="w-3.5 h-3.5 text-white dark:text-slate-900" strokeWidth={4} />}
-                            </div>
-                          </div>
-                        )}
-
-                        <div className="flex items-start gap-3 mb-3 pr-8 shrink-0">
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-medium text-foreground/90 text-sm leading-snug line-clamp-2" title={article.title}>
-                              {article.title}
-                            </h3>
-                            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mt-1 truncate">
-                              {article.authors.join(', ')} • {article.year}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (canExpand) {
-                              setExpandedSummaryId(isExpanded ? null : article.id);
-                            }
-                          }}
-                          className={`flex-1 flex flex-col bg-muted/80 border border-border/60 rounded-lg p-3 mb-3 transition-colors ${canExpand ? 'cursor-pointer hover:bg-muted/90' : ''}`}
-                        >
-                          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1 flex items-center gap-1.5 shrink-0">
-                            <AlignLeft className="w-3 h-3 text-red-500" /> Auto-Summary
-                          </span>
-                          <p className={`text-xs text-foreground/80 leading-relaxed ${isExpanded ? '' : 'line-clamp-2'}`}>
-                            {summaryText}
-                          </p>
-                          {canExpand && (
-                            <span className="text-[10px] text-blue-500 font-medium mt-1 flex items-center gap-1 shrink-0">
-                              {isExpanded ? 'Show less' : 'Show more'}
-                            </span>
-                          )}
-                        </div>
-
-                        {isLecturerView && (
-                          <div className="mb-3 shrink-0">
-                            <div className="flex items-center justify-between mb-1.5">
-                              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">Student Comprehension</span>
-                              <span className="text-xs font-bold text-foreground tabular-nums">{perArticleComprehension[article.id] ?? 0}%</span>
-                            </div>
-                            <div className="h-2 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden border border-border">
-                              <div
-                                className="h-full bg-gradient-to-r from-red-600 to-red-400 dark:from-red-500 dark:to-red-300 transition-all duration-500"
-                                style={{ width: `${perArticleComprehension[article.id] ?? 0}%` }}
-                                role="progressbar"
-                                aria-valuenow={perArticleComprehension[article.id] ?? 0}
-                                aria-valuemin={0}
-                                aria-valuemax={100}
-                              />
-                            </div>
-                          </div>
-                        )}
-
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSinglePDFView(article);
-                          }}
-                          className="w-full px-3 py-2.5 text-xs font-bold bg-slate-800 text-slate-200 border border-slate-700 hover:bg-slate-700 hover:text-white rounded-lg transition-colors mt-auto shrink-0 flex items-center justify-center gap-2"
-                        >
-                          <ExternalLink className="w-3.5 h-3.5" /> View Full PDF
-                        </button>
-                      </div>
-                    );
-                  });
+              // Render as horizontal carousel showing two cards per view
+              const wrapperClass = isLecturerView
+                ? 'bg-card rounded-2xl shadow-sm border border-border p-5'
+                : 'relative bg-gradient-to-b from-slate-900/40 to-transparent p-2 rounded-xl';
 
               return (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                  {/* Comparison column */}
-                  <div className="flex flex-col gap-3">
-                    <div className="flex items-center justify-between px-2">
-                      <h3 className="text-xs font-bold text-foreground uppercase tracking-wide">Comparison</h3>
-                      <span className="text-[10px] font-bold text-muted-foreground">{comparisonArticles.length}</span>
+                <div className={wrapperClass}>
+                  <div className="flex items-center justify-between px-2 mb-3">
+                    <div />
+                    <div className="flex items-center gap-2">
+                      {/* count displayed in library header — removed duplicate indicator here */}
                     </div>
-                    {comparisonArticles.length === 0 ? (
-                      <div className="py-8 text-center text-xs text-muted-foreground bg-muted/40 rounded-xl border border-dashed border-border">
-                        No comparisons yet
-                      </div>
-                    ) : (
-                      <div className="flex flex-col gap-3">{renderCardList(comparisonArticles)}</div>
-                    )}
                   </div>
 
-                  {/* Analyzed column */}
-                  <div className="flex flex-col gap-3">
-                    <div className="flex items-center justify-between px-2">
-                      <h3 className="text-xs font-bold text-foreground uppercase tracking-wide">Analyzed</h3>
-                      <span className="text-[10px] font-bold text-muted-foreground">{analyzedColumnArticles.length}</span>
-                    </div>
-                    {analyzedColumnArticles.length === 0 ? (
-                      <div className="py-8 text-center text-xs text-muted-foreground bg-muted/40 rounded-xl border border-dashed border-border">
-                        No analyzed-only papers
-                      </div>
-                    ) : (
-                      <div className="flex flex-col gap-3">{renderCardList(analyzedColumnArticles)}</div>
-                    )}
+                  <div id="articles-carousel" className="flex overflow-x-auto gap-4 pb-2 snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                    {analyzedColumnArticles.map((article) => {
+                      const isSelected = selectedArticles.has(article.id);
+                      const isExpanded = expandedSummaryId === article.id;
+                      const summaryText = (article as any).summary || 'This paper explores the core methodologies and practical challenges in the field, proposing a novel framework to address data limitations.';
+                      const canExpand = summaryText.length > 120;
+
+                      return (
+                        <div key={article.id} className="snap-start flex-shrink-0 w-[48%] min-w-[48%]">
+                            <div
+                            onClick={() => !isLecturerView && toggleArticleSelection(article.id)}
+                            className={`relative flex flex-col p-4 rounded-xl border-2 transition-all cursor-pointer min-h-[260px] ${
+                              isLecturerView
+                                ? 'border-border bg-card shadow-sm cursor-default'
+                                : isSelected
+                                ? 'border-red-500 dark:border-white bg-card shadow-[0_0_15px_rgba(220,38,38,0.18)]'
+                                : 'border-border bg-card hover:border-red-300 hover:bg-muted/40 shadow-sm'
+                            }`}> 
+                            {!isLecturerView && (
+                              <div className="absolute top-4 right-4 z-10">
+                                <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${isSelected ? 'bg-red-500 border-red-500 dark:bg-transparent dark:border-white' : 'border-border bg-card'}`}>
+                                  {isSelected && <Check className="w-3.5 h-3.5 text-white" strokeWidth={4} />}
+                                </div>
+                              </div>
+                            )}
+
+                            <div className="flex items-start gap-3 mb-3 pr-8 shrink-0">
+                              <div className="flex-1 min-w-0">
+                                <h3 className="font-medium text-foreground/90 text-sm leading-snug line-clamp-2" title={article.title}>
+                                  {article.title}
+                                </h3>
+                                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mt-1 truncate">
+                                  {article.authors.join(', ')} • {article.year}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (canExpand) setExpandedSummaryId(isExpanded ? null : article.id);
+                              }}
+                              className={`flex-1 flex flex-col bg-muted/80 border border-border/60 rounded-lg p-3 mb-3 transition-colors ${canExpand ? 'cursor-pointer hover:bg-muted/90' : ''}`}
+                            >
+                              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1 flex items-center gap-1.5 shrink-0">
+                                <AlignLeft className="w-3 h-3 text-red-500" /> Auto-Summary
+                              </span>
+                              <p className={`text-xs text-foreground/80 dark:text-slate-900 leading-relaxed ${isExpanded ? '' : 'line-clamp-2'}`}>
+                                {summaryText}
+                              </p>
+                              {canExpand && <span className="text-[10px] text-blue-500 font-medium mt-1">{isExpanded ? 'Show less' : 'Show more'}</span>}
+                            </div>
+
+                            {isLecturerView && (
+                              <div className="mb-3 shrink-0">
+                                <div className="flex items-center justify-between mb-1.5">
+                                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">Student Comprehension</span>
+                                  <span className="text-xs font-bold text-foreground tabular-nums">{perArticleComprehension[article.id] ?? 0}%</span>
+                                </div>
+                                <div className="h-2 bg-slate-200 rounded-full overflow-hidden border border-border">
+                                  <div
+                                    className="h-full bg-gradient-to-r from-red-600 to-red-400 transition-all duration-500"
+                                    style={{ width: `${perArticleComprehension[article.id] ?? 0}%` }}
+                                  />
+                                </div>
+                              </div>
+                            )}
+
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setSinglePDFView(article); }}
+                              className="w-full px-3 py-2.5 text-xs font-bold bg-slate-800 text-slate-200 border border-slate-700 hover:bg-slate-700 hover:text-white rounded-lg transition-colors mt-auto shrink-0 flex items-center justify-center gap-2"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" /> View Full PDF
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               );

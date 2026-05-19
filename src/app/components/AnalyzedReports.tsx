@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import {
-  BarChart, FileText, Calendar, Download, Trash2, Search,
-  ChevronDown, ChevronUp, Eye
+  BarChart, FileText, Calendar, GitCompare, Trash2, Search,
+  ChevronDown, ChevronUp, Eye, Download
 } from 'lucide-react';
 import { mockArticles, Article } from '../data/mockData';
+import { loadUploadedArticles } from '../../utils/articleStore';
 import { toast } from 'sonner';
 import AnalysisResultsModal from './AnalysisResultsModal';
+import ComparisonModal from './ComparisonModal';
 
 interface AnalysisReport {
   id: string;
@@ -20,6 +22,8 @@ export default function AnalyzedReports() {
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [selectedReport, setSelectedReport] = useState<AnalysisReport | null>(null);
+  const [showCompareModal, setShowCompareModal] = useState(false);
+  const [compareArticles, setCompareArticles] = useState<Article[]>([]);
   
   // Mock analysis reports
   const [reports, setReports] = useState<AnalysisReport[]>([
@@ -69,11 +73,17 @@ export default function AnalyzedReports() {
   };
 
   const getArticlesForReport = (articleIds: string[]) => {
-    return articleIds.map(id => mockArticles.find(a => a.id === id)).filter(Boolean) as Article[];
+    try {
+      const stored = loadUploadedArticles();
+      const all = [...stored, ...mockArticles.filter(m => !stored.find(s => s.id === m.id))];
+      return articleIds.map(id => all.find(a => a.id === id)).filter(Boolean) as Article[];
+    } catch (e) {
+      return articleIds.map(id => mockArticles.find(a => a.id === id)).filter(Boolean) as Article[];
+    }
   };
 
   return (
-    <div className="flex-1 overflow-y-auto bg-muted">
+    <div className="flex-1 flex flex-col min-w-0 min-h-0 relative overflow-hidden bg-muted">
       {/* Header */}
       <div className="bg-card border-b border-border px-6 py-5 flex-shrink-0">
         <div className="max-w-6xl mx-auto">
@@ -155,6 +165,19 @@ export default function AnalyzedReports() {
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
+                        {report.articleIds.length >= 2 && (
+                          <button
+                            onClick={() => {
+                              setCompareArticles(getArticlesForReport(report.articleIds));
+                              setShowCompareModal(true);
+                            }}
+                            className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-xs font-bold hover:bg-blue-100 transition-colors"
+                            title="Compare articles in this report"
+                          >
+                            <GitCompare className="w-4 h-4" />
+                            Compare
+                          </button>
+                        )}
                       </div>
                     </div>
 
@@ -196,12 +219,25 @@ export default function AnalyzedReports() {
 
                     {/* Actions */}
                     <div className="pt-3 mt-3 border-t border-border">
-                      <button
-                        onClick={() => handleViewAnalysis(report)}
-                        className="w-full px-3 py-2.5 text-xs font-bold bg-slate-800 text-slate-200 border border-slate-700 hover:bg-slate-700 hover:text-white rounded-lg transition-colors mt-auto shrink-0 flex items-center justify-center gap-2"
-                      >
-                        <Eye className="w-3.5 h-3.5" /> View Analysis
-                      </button>
+                        <div className="flex gap-3">
+                          <button
+                            onClick={() => handleViewAnalysis(report)}
+                            className="flex-1 px-3 py-2.5 text-xs font-bold bg-slate-800 text-slate-200 border border-slate-700 hover:bg-slate-700 hover:text-white rounded-lg transition-colors mt-auto shrink-0 flex items-center justify-center gap-2"
+                          >
+                            <Eye className="w-3.5 h-3.5" /> View Analysis
+                          </button>
+                          {report.articleIds.length >= 2 && (
+                            <button
+                              onClick={() => {
+                                setCompareArticles(getArticlesForReport(report.articleIds));
+                                setShowCompareModal(true);
+                              }}
+                              className="px-3 py-2.5 text-xs font-bold bg-blue-50 text-blue-700 border border-blue-100 hover:bg-blue-100 rounded-lg transition-colors mt-auto shrink-0 flex items-center gap-2"
+                            >
+                              <GitCompare className="w-4 h-4" /> Compare
+                            </button>
+                          )}
+                        </div>
                     </div>
                   </div>
                 </div>
@@ -216,6 +252,13 @@ export default function AnalyzedReports() {
           articles={getArticlesForReport(selectedReport.articleIds)}
           depth={selectedReport.depth}
           onClose={() => setSelectedReport(null)}
+        />
+      )}
+
+      {showCompareModal && (
+        <ComparisonModal
+          articles={compareArticles}
+          onClose={() => setShowCompareModal(false)}
         />
       )}
     </div>

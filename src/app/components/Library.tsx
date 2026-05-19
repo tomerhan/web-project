@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import {
   Search, Filter, Upload, FileText, Calendar, Users, TrendingUp,
-  LayoutGrid, List, BookOpen, Star, ChevronDown, ChevronUp, X, Check, Sparkles
+  LayoutGrid, List, BookOpen, Star, ChevronDown, ChevronUp, Check, Sparkles
 } from 'lucide-react';
 import { mockArticles, Article } from '../data/mockData';
+import { saveUploadedArticle } from '../../utils/articleStore';
+import { loadUploadedArticles } from '../../utils/articleStore';
 import { toast } from 'sonner';
 
 type ViewMode = 'grid' | 'list';
@@ -11,12 +13,22 @@ type ViewMode = 'grid' | 'list';
 export default function Library() {
   const [searchQuery, setSearchQuery]     = useState('');
   const [selectedTopic, setSelectedTopic] = useState('all');
-  const [articles, setArticles]           = useState<Article[]>(mockArticles);
+  const [articles, setArticles]           = useState<Article[]>(() => {
+    try {
+      const stored = loadUploadedArticles();
+      if (!stored || stored.length === 0) return mockArticles;
+      // merge stored uploads before mockArticles, avoid duplicate ids
+      const merged = [...stored, ...mockArticles.filter(m => !stored.find(s => s.id === m.id))];
+      return merged;
+    } catch (e) {
+      return mockArticles;
+    }
+  });
   const [viewMode, setViewMode]           = useState<ViewMode>('grid');
   const [expandedId, setExpandedId]       = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
-  const [selectedForCompare, setSelectedForCompare] = useState<Set<string>>(new Set());
-  const [showCompareModal, setShowCompareModal] = useState(false);
+  const [selectedForCompare] = useState<Set<string>>(new Set());
+  const [, setShowCompareModal] = useState(false);
 
   const allTopics = ['all', ...new Set(articles.flatMap((a) => a.topics))];
 
@@ -45,6 +57,9 @@ export default function Library() {
             uploadDate: new Date().toISOString().split('T')[0],
           };
           setArticles((p) => [newArticle, ...p]);
+          try { saveUploadedArticle(newArticle); } catch {}
+          // notify other parts of the app (ChatInterface) about the new upload
+          try { window.dispatchEvent(new CustomEvent('uploaded-article', { detail: newArticle })); } catch {}
           toast.success(`"${files[0].name}" uploaded successfully`);
           setTimeout(() => setUploadProgress(null), 500);
           return 100;
@@ -69,7 +84,7 @@ export default function Library() {
     })
     .filter(Boolean)
     .filter((a, idx, arr) => arr.findIndex((x) => x.id === a.id) === idx)
-    .slice(0, 3);
+    .slice(0, 5); // show up to 5 suggested articles instead of 3
 
   return (
     <div className="flex-1 overflow-y-auto bg-muted">
@@ -185,7 +200,7 @@ export default function Library() {
               <div>
                 <h2 className="text-lg font-bold text-foreground">Suggested Similar Articles</h2>
                 <p className="text-xs text-muted-foreground mt-0.5 font-medium">
-                  Picks based on the topics already in your library
+                  Suggested from external, reliable sources — items are verified as real articles (they may be slightly less up‑to‑date). Source selection is TBD.
                 </p>
               </div>
             </div>

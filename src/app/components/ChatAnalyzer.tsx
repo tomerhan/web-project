@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Send, Sparkles, FileText, MessageSquare, MoreVertical, BookmarkPlus, Check } from 'lucide-react';
 import { ChatMessage, mockArticles, mockChatHistory } from '../data/mockData';
+import { loadUploadedArticles } from '../../utils/articleStore';
 import { toast } from 'sonner';
 
 interface ArticleGroup {
@@ -27,8 +28,15 @@ export default function ChatAnalyzer() {
   const [groupArticleSelection, setGroupArticleSelection] = useState<Set<string>>(new Set());
 
   const activeGroup = groups.find(g => g.id === activeGroupId);
+  const allArticles = useMemo(() => {
+    try {
+      const stored = loadUploadedArticles();
+      return [...stored, ...mockArticles.filter(m => !stored.find(s => s.id === m.id))];
+    } catch (e) { return mockArticles; }
+  }, []);
+
   const activeGroupArticles = activeGroup
-    ? mockArticles.filter(a => activeGroup.articleIds.includes(a.id))
+    ? allArticles.filter(a => activeGroup.articleIds.includes(a.id))
     : [];
 
   const createGroup = () => {
