@@ -219,7 +219,7 @@ export default function AnalyzedReports() {
 
                     {/* Actions */}
                     <div className="pt-3 mt-3 border-t border-border">
-                        <div className="flex gap-3">
+                        <div className="flex gap-6">
                           <button
                             onClick={() => handleViewAnalysis(report)}
                             className="flex-1 px-3 py-2.5 text-xs font-bold bg-slate-800 text-slate-200 border border-slate-700 hover:bg-slate-700 hover:text-white rounded-lg transition-colors mt-auto shrink-0 flex items-center justify-center gap-2"
@@ -232,7 +232,7 @@ export default function AnalyzedReports() {
                                 setCompareArticles(getArticlesForReport(report.articleIds));
                                 setShowCompareModal(true);
                               }}
-                              className="px-3 py-2.5 text-xs font-bold bg-blue-50 text-blue-700 border border-blue-100 hover:bg-blue-100 rounded-lg transition-colors mt-auto shrink-0 flex items-center gap-2"
+                              className="flex-1 px-3 py-2.5 text-xs font-bold bg-blue-50 text-blue-700 border border-blue-100 hover:bg-blue-100 rounded-lg transition-colors mt-auto shrink-0 flex items-center justify-center gap-2"
                             >
                               <GitCompare className="w-4 h-4" /> Compare
                             </button>

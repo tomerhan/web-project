@@ -651,7 +651,7 @@ export default function ChatInterface() {
                     </div>
                   </div>
 
-                  <div id="articles-carousel" className="flex overflow-x-auto gap-4 pb-2 snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                  <div id="articles-carousel" className="flex items-stretch overflow-x-auto gap-4 pb-2 snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                     {analyzedColumnArticles.map((article) => {
                       const isSelected = selectedArticles.has(article.id);
                       const isExpanded = expandedSummaryId === article.id;
@@ -659,10 +659,10 @@ export default function ChatInterface() {
                       const canExpand = summaryText.length > 120;
 
                       return (
-                        <div key={article.id} className="snap-start flex-shrink-0 w-[48%] min-w-[48%]">
+                        <div key={article.id} className="snap-start flex-shrink-0 w-[48%] min-w-[48%] flex">
                             <div
                             onClick={() => !isLecturerView && toggleArticleSelection(article.id)}
-                            className={`relative flex flex-col p-4 rounded-xl border-2 transition-all cursor-pointer min-h-[260px] ${
+                            className={`relative flex flex-col p-4 rounded-xl border-2 transition-all cursor-pointer min-h-[260px] w-full h-full ${
                               isLecturerView
                                 ? 'border-border bg-card shadow-sm cursor-default'
                                 : isSelected
@@ -677,9 +677,9 @@ export default function ChatInterface() {
                               </div>
                             )}
 
-                            <div className="flex items-start gap-3 mb-3 pr-8 shrink-0">
+                            <div className="flex items-start gap-3 mb-3 pr-8 shrink-0 min-h-[3.5rem]">
                               <div className="flex-1 min-w-0">
-                                <h3 className="font-medium text-foreground/90 text-sm leading-snug line-clamp-2" title={article.title}>
+                                <h3 className="font-medium text-foreground/90 text-sm leading-snug line-clamp-2 min-h-[2.5rem]" title={article.title}>
                                   {article.title}
                                 </h3>
                                 <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mt-1 truncate">
@@ -698,7 +698,7 @@ export default function ChatInterface() {
                               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1 flex items-center gap-1.5 shrink-0">
                                 <AlignLeft className="w-3 h-3 text-red-500" /> Auto-Summary
                               </span>
-                              <p className={`text-xs text-foreground/80 dark:text-slate-900 leading-relaxed ${isExpanded ? '' : 'line-clamp-2'}`}>
+                              <p className={`text-xs text-foreground/80 leading-relaxed ${isExpanded ? '' : 'line-clamp-2'}`}>
                                 {summaryText}
                               </p>
                               {canExpand && <span className="text-[10px] text-blue-500 font-medium mt-1">{isExpanded ? 'Show less' : 'Show more'}</span>}
