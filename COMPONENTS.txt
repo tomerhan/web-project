@@ -1,0 +1,192 @@
+================================================================================
+              WEB project B11 — REACT COMPONENT GUIDE
+================================================================================
+
+Each component below is one React file inside src/app/components/.
+Short, plain-English explanation of what it does and when it appears.
+
+
+--------------------------------------------------------------------------------
+LAYOUT & ROUTING
+--------------------------------------------------------------------------------
+
+MainLayout.tsx
+  The outer page frame for student routes. Renders the Sidebar on the left
+  and a <Outlet/> on the right where each route's content appears.
+
+Sidebar.tsx
+  The dark navigation bar on the left. Links to: Analyzed Articles, Chat
+  Analyzer, All Articles, Analyzed Reports, Chat History, Settings.
+  Also shows user avatar + Sign Out and a collapse toggle.
+
+
+--------------------------------------------------------------------------------
+AUTHENTICATION
+--------------------------------------------------------------------------------
+
+Login.tsx
+  Login screen. User picks Student or Lecturer, signs in, and is routed
+  to the right home page.
+
+Register.tsx
+  Sign-up screen for new students.
+
+
+--------------------------------------------------------------------------------
+MAIN STUDENT PAGES
+--------------------------------------------------------------------------------
+
+ChatInterface.tsx
+  The home page for a student (route '/'). Shows the article library as a
+  horizontal carousel, the Guided Questions block, and the Analyze /
+  Compare action bar at the bottom. Also reused for the lecturer
+  viewing a specific student (route '/student/:id').
+
+ChatAnalyzer.tsx
+  The dedicated chat page (route '/chat-analyzer'). Left side has the
+  comprehension % bar (with a 100% celebration effect). Right side has
+  the chat box with messages, a 3-dot menu to attach an article group,
+  and an input for new questions.
+
+Library.tsx
+  The "All Articles" page. Searchable / filterable list of every PDF
+  uploaded. Shows a "Suggested Similar Articles" panel at the top
+  picked from the top topics in the library.
+
+AnalyzedReports.tsx
+  Lists saved analysis reports the student previously generated. Each
+  report can be opened (View Analysis) or compared with others (Compare).
+
+HistoryPage.tsx
+  Full page showing the student's past chat sessions.
+
+SettingsPage.tsx
+  User settings: theme (light/dark), font size, font family, profile.
+
+Profile.tsx
+  Shows the student's profile info and activity summary.
+
+
+--------------------------------------------------------------------------------
+LECTURER PAGES
+--------------------------------------------------------------------------------
+
+LecturerDashboard.tsx
+  The home page for a lecturer (route '/lecturer'). Lists all students
+  with progress badges + a "View Work" button to open each student's
+  ChatInterface in lecturer mode.
+
+StudentPerformancePanel.tsx
+  Panel shown on top of the lecturer's student view. Four stat cards
+  (avg comprehension, questions asked, papers analyzed, topics
+  engaged) plus three charts: bar chart per paper, radar chart of
+  topic coverage, line chart of last 7 days of activity.
+
+
+--------------------------------------------------------------------------------
+ARTICLES & VIEWERS
+--------------------------------------------------------------------------------
+
+ArticleDetail.tsx
+  Full detail view for a single article — abstract, key findings,
+  methodology, citations.
+
+ArticleViewer.tsx
+  Multi-page PDF-like viewer. Used for browsing one article's content
+  or side-by-side comparison.
+
+SinglePDFViewer.tsx
+  Modal that opens a single article's full text on top of the current
+  page.
+
+Upload.tsx
+  Standalone upload screen / button used for adding new PDFs.
+
+
+--------------------------------------------------------------------------------
+ANALYSIS DIALOGS
+--------------------------------------------------------------------------------
+
+AnalysisStagesDialog.tsx
+  The animated "AI is analyzing…" progress dialog with multiple
+  stages (extract, summarize, validate). Shown while an analyze or
+  compare runs.
+
+AnalysisResultsModal.tsx
+  Shows the result of an Analyze action. Two completely different
+  views inside:
+    - Student: a short receipt (status + timestamp only, no charts).
+    - Lecturer: full charts — citations bar, quality radar, year
+      trend, methodology pie, topic frequency, AI insights.
+
+AnalysisViewModal.tsx
+  Read-only viewer for a previously saved analysis report (opened
+  from AnalyzedReports).
+
+Comparison.tsx
+  Full page comparing two or more articles side-by-side.
+
+ComparisonModal.tsx
+  Modal version of Comparison that overlays on the current page.
+
+
+--------------------------------------------------------------------------------
+GUIDED QUESTIONS
+--------------------------------------------------------------------------------
+
+GuidingQuestionsBlock.tsx
+  The "Guided Questions" panel on the student home page. Student
+  clicks "+ Add Question" to add as many questions as they like.
+  Each question has an optional guide note and a "Get Answer"
+  button that returns a guided answer + auto-detected referenced
+  articles. The main tool to sharpen understanding before chatting.
+
+GuidingQuestionsPanel.tsx
+  Older side-drawer version of the Guided Questions UI. Kept for
+  legacy use; the inline GuidingQuestionsBlock replaced it on the
+  main screen.
+
+
+--------------------------------------------------------------------------------
+HISTORY
+--------------------------------------------------------------------------------
+
+HistoryModal.tsx
+  Pop-up that shows a single past chat thread, including the
+  questions, AI answers, and sources.
+
+
+--------------------------------------------------------------------------------
+SMALL UI HELPERS
+--------------------------------------------------------------------------------
+
+FontSelector.tsx
+  Dropdown for picking the app's font family. Used in settings.
+
+components/ui/*
+  Generic UI primitives (buttons, dialogs, inputs) generated by the
+  design system. Reusable building blocks consumed by all the
+  components above.
+
+components/figma/*
+  Figma-imported design assets / wrappers used as visual references.
+
+
+================================================================================
+                              QUICK MAP
+================================================================================
+
+   ROUTE                  COMPONENT FILE                  WHO SEES IT
+   --------------------   ------------------------------  ------------
+   /login                 Login.tsx                       everyone
+   /register              Register.tsx                    everyone
+   /                      ChatInterface.tsx               student
+   /chat-analyzer         ChatAnalyzer.tsx                student
+   /library               Library.tsx                     student
+   /reports               AnalyzedReports.tsx             student
+   /history               HistoryPage.tsx                 student
+   /settings              SettingsPage.tsx                student
+   /lecturer              LecturerDashboard.tsx           lecturer
+   /student/:id           ChatInterface.tsx (lecturer)    lecturer
+
+================================================================================
