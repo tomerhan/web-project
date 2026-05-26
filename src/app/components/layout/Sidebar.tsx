@@ -1,10 +1,10 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import {
   FileText, ChevronLeft, ChevronRight, X, GraduationCap
 } from 'lucide-react';
-import { NAV_ITEMS } from '../config/nav';
+import { NAV_ITEMS } from '../../config/nav';
 import { useNavigate, useLocation } from 'react-router';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 
 interface SidebarProps {
   mobileSidebarOpen?: boolean;
@@ -126,7 +126,7 @@ export default function Sidebar({ mobileSidebarOpen, onMobileSidebarClose }: Sid
           </div>
         )}
 
-        {/* Collapse toggle — desktop only */}
+        {/* Collapse toggle â€” desktop only */}
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="hidden md:flex items-center justify-center p-2 text-muted-foreground hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded-lg border border-transparent hover:border-border"

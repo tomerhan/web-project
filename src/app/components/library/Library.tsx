@@ -1,13 +1,13 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import {
   Search, Filter, Upload, FileText, Calendar, Users, TrendingUp,
   LayoutGrid, List, BookOpen, Star, ChevronDown, ChevronUp, Check, Sparkles, Trash2
 } from 'lucide-react';
-import { mockArticles, Article } from '../data/mockData';
-import { saveUploadedArticle, deleteUploadedArticle } from '../../utils/articleStore';
-import { loadUploadedArticles } from '../../utils/articleStore';
+import { mockArticles, Article } from '../../data/mockData';
+import { saveUploadedArticle, deleteUploadedArticle } from '../../../utils/articleStore';
+import { loadUploadedArticles } from '../../../utils/articleStore';
 import { toast } from 'sonner';
-import ArticleIcon from './ui/ArticleIcon';
+import ArticleIcon from '../ui/ArticleIcon';
 
 type ViewMode = 'grid' | 'list';
 
@@ -113,7 +113,7 @@ export default function Library() {
               <Upload className="w-4 h-4 text-red-600" />
             </div>
             <div>
-              <p className="text-sm font-bold text-foreground">Uploading PDF…</p>
+              <p className="text-sm font-bold text-foreground">Uploading PDFâ€¦</p>
               <p className="text-xs text-muted-foreground">{uploadProgress}% complete</p>
             </div>
           </div>
@@ -136,7 +136,7 @@ export default function Library() {
               </div>
               <div>
                 <h1 className="font-bold text-foreground text-xl">All Articles</h1>
-                <p className="text-sm text-muted-foreground">{articles.length} articles · {filteredArticles.length} shown</p>
+                <p className="text-sm text-muted-foreground">{articles.length} articles Â· {filteredArticles.length} shown</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -179,7 +179,7 @@ export default function Library() {
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
                 type="text"
-                placeholder="Search by title or author…"
+                placeholder="Search by title or authorâ€¦"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2.5 border border-input rounded-xl text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent bg-muted focus:bg-card transition-all"
@@ -244,7 +244,7 @@ export default function Library() {
                           {article.title}
                         </h3>
                         <p className="text-xs text-muted-foreground font-medium">
-                          {article.authors[0]} et al. · {article.year}
+                          {article.authors[0]} et al. Â· {article.year}
                         </p>
                       </div>
                     </div>
@@ -279,7 +279,7 @@ export default function Library() {
                           {(() => {
                             const a = article.abstract?.trim();
                             if (a && a.length > 0) {
-                              return a.split('.').slice(0, 2).join('. ') + (a.split('.').length > 2 ? '…' : '');
+                              return a.split('.').slice(0, 2).join('. ') + (a.split('.').length > 2 ? 'â€¦' : '');
                             }
                             return article.keyFindings?.slice(0, 2).join('; ') || 'No summary available.';
                           })()}
@@ -333,9 +333,9 @@ export default function Library() {
                     </div>
                     <div className="flex items-center gap-3 text-xs text-muted-foreground mb-3">
                       <span>{article.authors[0]} et al.</span>
-                      <span>·</span>
+                      <span>Â·</span>
                       <span>{article.year}</span>
-                      <span>·</span>
+                      <span>Â·</span>
                       <span>{article.citations} citations</span>
                     </div>
                   </div>
@@ -358,7 +358,7 @@ export default function Library() {
                   </ArticleIcon>
                   <div className="flex-1 min-w-0">
                     <div className="font-medium text-sm truncate">{s.title}</div>
-                    <div className="text-xs text-muted-foreground">{s.authors[0]} · {s.year}</div>
+                    <div className="text-xs text-muted-foreground">{s.authors[0]} Â· {s.year}</div>
                   </div>
                 </div>
               ))}

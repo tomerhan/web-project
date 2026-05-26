@@ -1,16 +1,16 @@
 import { createBrowserRouter, Navigate, Outlet } from 'react-router';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Toaster } from 'sonner';
-import Login from './components/Login';
-import Register from './components/Register';
-import LecturerDashboard from './components/LecturerDashboard';
-import ChatInterface from './components/ChatInterface';
-import Library from './components/Library';
-import SettingsPage from './components/SettingsPage';
-import HistoryPage from './components/HistoryPage';
-import AnalyzedReports from './components/AnalyzedReports';
-import ChatAnalyzer from './components/ChatAnalyzer';
-import MainLayout from './components/MainLayout';
+import Login from './components/auth/Login';
+import Register from './components/auth/Register';
+import LecturerDashboard from './components/dashboard/LecturerDashboard';
+import ChatInterface from './components/chat/ChatInterface';
+import Library from './components/library/Library';
+import SettingsPage from './components/settings/SettingsPage';
+import HistoryPage from './components/history/HistoryPage';
+import AnalyzedReports from './components/analysis/AnalyzedReports';
+import ChatAnalyzer from './components/analysis/ChatAnalyzer';
+import MainLayout from './components/layout/MainLayout';
 
 function Root() {
   return (

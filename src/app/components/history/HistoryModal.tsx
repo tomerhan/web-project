@@ -1,5 +1,5 @@
-import { X, Clock, FileText, ChevronRight } from 'lucide-react';
-import { ChatMessage, Article } from '../data/mockData';
+﻿import { X, Clock, FileText, ChevronRight } from 'lucide-react';
+import { ChatMessage, Article } from '../../data/mockData';
 
 interface HistoryModalProps {
   onClose: () => void;

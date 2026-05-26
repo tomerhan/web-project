@@ -1,11 +1,11 @@
-import { useMemo } from 'react';
+﻿import { useMemo } from 'react';
 import { Activity, BookOpen, Layers, MessageSquare, TrendingUp } from 'lucide-react';
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   LineChart, Line, Legend
 } from 'recharts';
-import { Article, ChatMessage } from '../data/mockData';
+import { Article, ChatMessage } from '../../data/mockData';
 
 interface Props {
   studentName: string;
@@ -87,7 +87,7 @@ export default function StudentPerformancePanel({
           <Activity className="w-5 h-5" />
         </div>
         <div>
-          <h2 className="font-bold text-foreground">{studentName} — Performance</h2>
+          <h2 className="font-bold text-foreground">{studentName} â€” Performance</h2>
           <p className="text-xs text-muted-foreground">Comprehension, engagement, and topic coverage from chat activity</p>
         </div>
       </div>

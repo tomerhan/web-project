@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect } from 'react';
+﻿import { useState, useRef, useEffect } from 'react';
 import { X, Maximize2, Minimize2, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
-import { Article } from '../data/mockData';
+import { Article } from '../../data/mockData';
 
 interface SinglePDFViewerProps {
   article: Article;
@@ -114,7 +114,7 @@ export default function SinglePDFViewer({ article, onClose }: SinglePDFViewerPro
             <div>
               <h3 className="font-semibold text-foreground text-sm line-clamp-1">{article.title}</h3>
               <p className="text-xs text-muted-foreground mt-0.5">
-                {article.authors.join(', ')} • {article.year}
+                {article.authors.join(', ')} â€¢ {article.year}
               </p>
             </div>
           </div>
@@ -146,7 +146,7 @@ export default function SinglePDFViewer({ article, onClose }: SinglePDFViewerPro
                     {article.authors.join(', ')}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {article.year} • Research Journal
+                    {article.year} â€¢ Research Journal
                   </p>
                 </div>
               </div>

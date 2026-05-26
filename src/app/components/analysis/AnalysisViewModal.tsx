@@ -1,5 +1,5 @@
-import { X, Download, Eye } from 'lucide-react';
-import { SavedAnalysis } from '../data/mockData';
+﻿import { X, Download, Eye } from 'lucide-react';
+import { SavedAnalysis } from '../../data/mockData';
 
 interface AnalysisViewModalProps {
   analysis: SavedAnalysis;

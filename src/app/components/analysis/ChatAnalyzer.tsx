@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import { Send, Sparkles, FileText, MessageSquare, MoreVertical, BookmarkPlus, Check, Edit, X } from 'lucide-react';
-import { ChatMessage, mockArticles, mockChatHistory } from '../data/mockData';
-import { loadUploadedArticles } from '../../utils/articleStore';
+import { ChatMessage, mockArticles, mockChatHistory } from '../../data/mockData';
+import { loadUploadedArticles } from '../../../utils/articleStore';
 import { toast } from 'sonner';
 
 interface ArticleGroup {
@@ -22,7 +22,7 @@ export default function ChatAnalyzer() {
   const [isTyping, setIsTyping] = useState(false);
   const chatRef = useRef<HTMLDivElement>(null);
 
-  // Article groups — restored from original chat container
+  // Article groups â€” restored from original chat container
   const [groups, setGroups] = useState<ArticleGroup[]>(() => {
     try {
       const raw = localStorage.getItem('analysis_groups_v1');
@@ -66,7 +66,7 @@ export default function ChatAnalyzer() {
     toast.success(`Group "${g.name}" created`);
   };
 
-  // Demo override — when an analyze completes elsewhere, force the bar to 100% so the celebration effect is visible
+  // Demo override â€” when an analyze completes elsewhere, force the bar to 100% so the celebration effect is visible
   const [demoForce100, setDemoForce100] = useState<boolean>(() => {
     try { return localStorage.getItem('demo-comprehension-100') === '1'; } catch { return false; }
   });
@@ -94,7 +94,7 @@ export default function ChatAnalyzer() {
     if (comprehensionPercent === 100 && !celebratedRef.current) {
       celebratedRef.current = true;
       toast.success('100% comprehension reached!', {
-        description: 'Outstanding work — you mastered this material.',
+        description: 'Outstanding work â€” you mastered this material.',
       });
     } else if (comprehensionPercent < 100) {
       celebratedRef.current = false;
@@ -242,7 +242,7 @@ export default function ChatAnalyzer() {
       )}
 
       <div className="flex-1 flex overflow-hidden bg-muted min-h-0">
-        {/* Left bar — comprehension % with 100% celebration */}
+        {/* Left bar â€” comprehension % with 100% celebration */}
         <aside className={`w-16 shrink-0 flex flex-col items-center gap-3 py-6 border-r border-border relative overflow-hidden transition-colors duration-500 ${
           comprehensionPercent === 100
             ? 'bg-gradient-to-b from-red-50 via-card to-card dark:from-red-950/40 dark:via-card dark:to-card'
@@ -250,7 +250,7 @@ export default function ChatAnalyzer() {
         }`}>
           {comprehensionPercent === 100 && (
             <>
-              <span className="absolute top-1 left-1/2 -translate-x-1/2 text-base animate-bounce" aria-hidden>🏆</span>
+              <span className="absolute top-1 left-1/2 -translate-x-1/2 text-base animate-bounce" aria-hidden>ðŸ†</span>
               <span className="pointer-events-none absolute inset-0 ring-2 ring-red-500/60 animate-pulse" aria-hidden />
               <span className="pointer-events-none absolute top-6 left-2 w-1 h-1 rounded-full bg-red-400 animate-ping" aria-hidden />
               <span className="pointer-events-none absolute top-12 right-2 w-1 h-1 rounded-full bg-red-500 animate-ping [animation-delay:0.3s]" aria-hidden />
@@ -288,7 +288,7 @@ export default function ChatAnalyzer() {
           }`}>{comprehensionPercent === 100 ? 'MAX!' : '0%'}</span>
         </aside>
 
-        {/* Chat section — moved from main screen */}
+        {/* Chat section â€” moved from main screen */}
         <div className="flex-1 overflow-y-auto p-4 md:p-6 min-w-0">
           <section className="bg-card rounded-2xl shadow-sm border border-border flex flex-col h-[500px] overflow-hidden">
             <div className="bg-card px-5 py-4 border-b border-border flex items-center justify-between flex-shrink-0 gap-4 w-full min-w-0">
@@ -320,7 +320,7 @@ export default function ChatAnalyzer() {
                     )}
                   </div>
 
-              {/* 3-dot menu — attach a group of articles to discuss */}
+              {/* 3-dot menu â€” attach a group of articles to discuss */}
               {!isResumedMode && (
               <div className="relative shrink-0">
                 <button
@@ -391,7 +391,7 @@ export default function ChatAnalyzer() {
                 {activeGroupArticles.map((a) => (
                   <span key={a.id} className="text-[10px] font-medium text-foreground bg-card border border-border rounded-full px-2 py-0.5 flex items-center gap-1">
                     <FileText className="w-2.5 h-2.5 text-blue-600" />
-                    {a.title.substring(0, 40)}{a.title.length > 40 ? '…' : ''}
+                    {a.title.substring(0, 40)}{a.title.length > 40 ? 'â€¦' : ''}
                   </span>
                 ))}
                 <span className="text-[10px] text-muted-foreground ml-auto">{messages.length} message{messages.length === 1 ? '' : 's'}</span>

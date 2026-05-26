@@ -1,9 +1,9 @@
-import React from 'react';
+﻿import React from 'react';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { FileText, Mail, Lock, ArrowRight, User as UserIcon, GraduationCap, Sun, Moon } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -94,7 +94,7 @@ export default function Login() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
+                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                   className="w-full pl-11 pr-4 py-3 border border-input rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-foreground placeholder:text-muted-foreground"
                   required
                 />

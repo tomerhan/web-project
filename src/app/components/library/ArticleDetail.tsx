@@ -1,7 +1,7 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { ArrowLeft, MessageSquare, FileText, Users, Calendar, TrendingUp, Send, Download, Share2, BookOpen, Sparkles } from 'lucide-react';
-import { mockArticles, mockChatHistory, ChatMessage, Article } from '../data/mockData';
-import { loadUploadedArticles } from '../../utils/articleStore';
+import { mockArticles, mockChatHistory, ChatMessage, Article } from '../../data/mockData';
+import { loadUploadedArticles } from '../../../utils/articleStore';
 
 interface ArticleDetailProps {
   articleId: string;

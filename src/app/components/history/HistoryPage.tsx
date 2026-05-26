@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import {
   History, GitCompare, MessageSquare, BookOpen,
   Trash2, Search, Calendar, BarChart3, FileText, Edit, X, Check
 } from 'lucide-react';
-import { mockAnalysisSessions, mockArticles, mockChatHistory, ChatMessage } from '../data/mockData';
+import { mockAnalysisSessions, mockArticles, mockChatHistory, ChatMessage } from '../../data/mockData';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
 
@@ -128,7 +128,7 @@ export default function HistoryPage() {
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Search sessions by name…"
+            placeholder="Search sessions by nameâ€¦"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-3 bg-card border border-input rounded-xl text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent shadow-sm"
@@ -171,7 +171,7 @@ export default function HistoryPage() {
                           onClick={() => resumeFromMessage(msg)}
                           className="px-4 py-2 bg-card hover:bg-slate-100 dark:hover:bg-slate-700 text-foreground rounded-lg text-xs font-bold transition-colors"
                         >
-                          Resume Session →
+                          Resume Session â†’
                         </button>
                       </div>
                     </div>
@@ -249,7 +249,7 @@ export default function HistoryPage() {
                               <div className="flex flex-wrap gap-2 text-xs">
                                 {articles.slice(0, 6).map((a) => (
                                   <span key={a.id} className="px-2 py-1 bg-muted text-muted-foreground rounded-full border border-border">
-                                    {a.title.length > 36 ? `${a.title.substring(0,36)}…` : a.title}
+                                    {a.title.length > 36 ? `${a.title.substring(0,36)}â€¦` : a.title}
                                   </span>
                                 ))}
                                 {articles.length > 6 && (
@@ -261,14 +261,14 @@ export default function HistoryPage() {
 
                           <div className="flex items-center gap-2">
                             <div className="text-sm text-muted-foreground">
-                              <span>15 min · {articles.length} articles</span>
+                              <span>15 min Â· {articles.length} articles</span>
                             </div>
                             <div className="flex items-center gap-2">
                               <button
                                 onClick={() => resumeFromSession(session)}
                                 className="px-3 py-2 bg-card hover:bg-slate-100 dark:hover:bg-slate-700 text-foreground rounded-lg text-xs font-bold transition-colors"
                               >
-                                Resume Session →
+                                Resume Session â†’
                               </button>
                               <button
                                 onClick={() => deleteSession(session.id)}

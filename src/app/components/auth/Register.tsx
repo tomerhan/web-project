@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { FileText, Mail, Lock, User, Building, ArrowRight, Sun, Moon } from 'lucide-react';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme } from '../../context/ThemeContext';
 
 export default function Register() {
   const navigate = useNavigate();
@@ -112,7 +112,7 @@ export default function Register() {
                   type="password"
                   value={formData.password}
                   onChange={(e) => handleChange('password', e.target.value)}
-                  placeholder="•••••••"
+                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                   className="w-full pl-11 pr-4 py-3 border border-input rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-foreground placeholder:text-muted-foreground"
                   required
                 />
@@ -129,7 +129,7 @@ export default function Register() {
                   type="password"
                   value={formData.confirmPassword}
                   onChange={(e) => handleChange('confirmPassword', e.target.value)}
-                  placeholder="•••••••"
+                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                   className="w-full pl-11 pr-4 py-3 border border-input rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-foreground placeholder:text-muted-foreground"
                   required
                 />

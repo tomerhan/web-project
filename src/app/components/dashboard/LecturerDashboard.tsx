@@ -1,8 +1,8 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Users, FileText, Search, ArrowRight, BookOpen, LogOut, Sparkles, Sun, Moon } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 
 const MOCK_STUDENTS = [
   { id: 's1', name: 'Alex Student', email: 'alex@student.edu', project: 'Quantum Computing Impact', papersAnalyzed: 12, lastActive: '2 hours ago', status: 'Active' },
@@ -83,7 +83,7 @@ export default function LecturerDashboard() {
   return (
     <div className="flex flex-col h-screen w-full bg-background font-sans overflow-hidden">
       
-      {/* ─── Top Navigation Bar ─── */}
+      {/* â”€â”€â”€ Top Navigation Bar â”€â”€â”€ */}
       <header className="bg-card border-b border-border px-6 py-4 flex items-center justify-between shrink-0 z-10 shadow-sm">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-red-600 rounded-xl flex items-center justify-center shadow-md">
@@ -104,7 +104,7 @@ export default function LecturerDashboard() {
         </button>
       </header>
 
-{/* ─── Main Dashboard Content ─── */}
+{/* â”€â”€â”€ Main Dashboard Content â”€â”€â”€ */}
       <main className="flex-1 overflow-y-auto p-6 md:p-10 min-h-0 bg-muted">
         <div className="max-w-6xl mx-auto space-y-8 pb-20">
           

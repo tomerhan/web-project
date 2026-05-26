@@ -1,18 +1,18 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import {
   X, BarChart3, Download, FileText, TrendingUp, Award, BookOpen,
   Calendar, Hash, Target, Layers, ChevronDown, ChevronUp, Info,
   Lock, CheckCircle2
 } from 'lucide-react';
-import { Article } from '../data/mockData';
+import { Article } from '../../data/mockData';
 import { toast } from 'sonner';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 import {
   getAnalysis,
   isLecturerPayload,
   StudentAnalysisReceipt,
   LecturerAnalysisPayload,
-} from '../services/analysisService';
+} from '../../services/analysisService';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend, LineChart, Line, RadarChart, Radar, PolarGrid,
@@ -75,7 +75,7 @@ export default function AnalysisResultsModal({ articles, depth, onClose }: Analy
 
           <div className="p-5 space-y-4">
             {loading || !receipt ? (
-              <div className="text-sm text-muted-foreground">Generating analysis…</div>
+              <div className="text-sm text-muted-foreground">Generating analysisâ€¦</div>
             ) : (
               <>
                 <div className="flex items-start gap-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800">
@@ -112,7 +112,7 @@ export default function AnalysisResultsModal({ articles, depth, onClose }: Analy
 
   // Lecturer view continues below with full charts.
 
-  /* ─── Calculate Statistics ─── */
+  /* â”€â”€â”€ Calculate Statistics â”€â”€â”€ */
   const totalCitations = articles.reduce((sum, a) => sum + a.citations, 0);
   const avgCitations = Math.round(totalCitations / articles.length);
   const totalArticles = articles.length;
@@ -196,7 +196,7 @@ export default function AnalysisResultsModal({ articles, depth, onClose }: Analy
     },
     {
       title: 'Dominant Topics',
-      description: `"${topicData[0]?.topic}" appears most frequently (${topicData[0]?.count}× across papers), suggesting it's a central theme in your corpus.`
+      description: `"${topicData[0]?.topic}" appears most frequently (${topicData[0]?.count}Ã— across papers), suggesting it's a central theme in your corpus.`
     },
     {
       title: 'Methodology Balance',
@@ -209,7 +209,7 @@ export default function AnalysisResultsModal({ articles, depth, onClose }: Analy
   ];
 
   const handleExport = (format: 'pdf' | 'excel') => {
-    toast.success(`Exporting analysis as ${format.toUpperCase()}…`, {
+    toast.success(`Exporting analysis as ${format.toUpperCase()}â€¦`, {
       description: 'Your statistical report will be ready shortly.',
     });
   };
@@ -227,7 +227,7 @@ export default function AnalysisResultsModal({ articles, depth, onClose }: Analy
             <div>
               <h2 className="font-bold text-slate-900 text-lg">Research Analysis</h2>
               <p className="text-xs text-slate-500">
-                {totalArticles} papers • {depth} analysis mode • AI-generated insights
+                {totalArticles} papers â€¢ {depth} analysis mode â€¢ AI-generated insights
               </p>
             </div>
           </div>
@@ -285,7 +285,7 @@ export default function AnalysisResultsModal({ articles, depth, onClose }: Analy
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
 
-          {/* ═══ Key Statistics Cards ═══ */}
+          {/* â•â•â• Key Statistics Cards â•â•â• */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-gradient-to-br from-red-50 to-red-100 border-2 border-red-200 rounded-xl p-4">
               <div className="flex items-center justify-between mb-2">
@@ -324,7 +324,7 @@ export default function AnalysisResultsModal({ articles, depth, onClose }: Analy
             </div>
           </div>
 
-          {/* ═══ Charts Row 1: Citation Distribution + Quality Radar ═══ */}
+          {/* â•â•â• Charts Row 1: Citation Distribution + Quality Radar â•â•â• */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Citation Distribution Bar Chart */}
             <div className="bg-white border border-slate-200 rounded-xl p-5">
@@ -364,7 +364,7 @@ export default function AnalysisResultsModal({ articles, depth, onClose }: Analy
             </div>
           </div>
 
-          {/* ═══ Charts Row 2: Year Trend + Methodology Breakdown ═══ */}
+          {/* â•â•â• Charts Row 2: Year Trend + Methodology Breakdown â•â•â• */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Publication Year Trend */}
             <div className="bg-white border border-slate-200 rounded-xl p-5">
@@ -415,7 +415,7 @@ export default function AnalysisResultsModal({ articles, depth, onClose }: Analy
             </div>
           </div>
 
-          {/* ═══ Topic Frequency Bar Chart ═══ */}
+          {/* â•â•â• Topic Frequency Bar Chart â•â•â• */}
           <div className="bg-white border border-slate-200 rounded-xl p-5">
             <h3 className="font-bold text-slate-800 text-sm mb-4 flex items-center gap-2">
               <Hash className="w-4 h-4 text-red-600" />
@@ -434,7 +434,7 @@ export default function AnalysisResultsModal({ articles, depth, onClose }: Analy
             </ResponsiveContainer>
           </div>
 
-          {/* ═══ AI-Generated Insights ═══ */}
+          {/* â•â•â• AI-Generated Insights â•â•â• */}
           <div className="bg-white border border-slate-200 rounded-xl p-5">
             <h3 className="font-bold text-slate-800 text-sm mb-3 flex items-center gap-2">
               <BarChart3 className="w-4 h-4 text-red-600" />

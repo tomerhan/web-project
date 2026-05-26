@@ -1,13 +1,13 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import {
   Settings, User, Bell, Palette, Shield, BookOpen,
   ChevronRight, Check, Sun, Moon, Type
 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import FontSelector from './FontSelector';
 import { toast } from 'sonner';
-import { saveSettingsToStorage, loadSettingsFromStorage, UserSettings } from '../../utils/settingsStorage';
+import { saveSettingsToStorage, loadSettingsFromStorage, UserSettings } from '../../../utils/settingsStorage';
 
 type Section = 'profile' | 'preferences' | 'notifications' | 'privacy';
 

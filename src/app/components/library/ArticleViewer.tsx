@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useEffect, useCallback } from 'react';
 import { X, ChevronLeft, ChevronRight, Maximize2, Minimize2, FileText, SplitSquareHorizontal } from 'lucide-react';
-import { Article } from '../data/mockData';
+import { Article } from '../../data/mockData';
 
 interface ArticleViewerProps {
   articles: Article[];

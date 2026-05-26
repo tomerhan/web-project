@@ -1,4 +1,4 @@
-// Import React hooks for state management and optimization
+﻿// Import React hooks for state management and optimization
 import { useState, useRef, useMemo, useEffect } from 'react';
 // Import icons from lucide-react for UI elements
 import {
@@ -8,25 +8,25 @@ import {
   AlignLeft
 } from 'lucide-react';
 // Import mock data and types for articles and chat messages
-import { mockArticles, mockChatHistory, ChatMessage, Article } from '../data/mockData';
-import { loadUploadedArticles } from '../../utils/articleStore';
-import { saveUploadedArticle } from '../../utils/articleStore';
+import { mockArticles, mockChatHistory, ChatMessage, Article } from '../../data/mockData';
+import { loadUploadedArticles } from '../../../utils/articleStore';
+import { saveUploadedArticle } from '../../../utils/articleStore';
 // Import authentication context to check user role
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 // Import routing hooks for navigation
 import { useNavigate, useParams } from 'react-router';
 // Import component components for displaying PDFs and analysis
-import SinglePDFViewer from './SinglePDFViewer';
-import AnalysisStagesDialog from './AnalysisStagesDialog';
-import ComparisonModal from './ComparisonModal';
-import AnalysisResultsModal from './AnalysisResultsModal';
+import SinglePDFViewer from '../library/SinglePDFViewer';
+import AnalysisStagesDialog from '../analysis/AnalysisStagesDialog';
+import ComparisonModal from '../analysis/ComparisonModal';
+import AnalysisResultsModal from '../analysis/AnalysisResultsModal';
 import GuidingQuestionsBlock from './GuidingQuestionsBlock';
-import StudentPerformancePanel from './StudentPerformancePanel';
+import StudentPerformancePanel from '../dashboard/StudentPerformancePanel';
 // Import toast notification library
 import { toast } from 'sonner';
-import { getShortSummary } from '../../utils/textUtils';
-import ArticleIcon from './ui/ArticleIcon';
-import { CHAT_LABEL } from '../config/nav';
+import { getShortSummary } from '../../../utils/textUtils';
+import ArticleIcon from '../ui/ArticleIcon';
+import { CHAT_LABEL } from '../../config/nav';
 
 // Interface defining the structure of an article group for organizing research papers
 interface ArticleGroup {
@@ -76,7 +76,7 @@ export default function ChatInterface() {
   const [showStatsMenu,       setShowStatsMenu]       = useState(false);
   const [showUserMenu,        setShowUserMenu]        = useState(false);
   const [analysisType,        setAnalysisType]        = useState<'analyze' | 'compare' | null>(null);
-  // Track which article IDs have completed analysis. Lecturer sees student's history → all marked analyzed.
+  // Track which article IDs have completed analysis. Lecturer sees student's history â†’ all marked analyzed.
   const [analyzedArticles,    setAnalyzedArticles]    = useState<Set<string>>(() => {
     if (user?.role === 'lecturer') return new Set(mockArticles.map(a => a.id));
     try {
@@ -184,7 +184,7 @@ export default function ChatInterface() {
 
   // use getShortSummary from utils
 
-  // (carousel removed) — navigation now via two fixed columns (Comparisons | Analyzed)
+  // (carousel removed) â€” navigation now via two fixed columns (Comparisons | Analyzed)
 
   // Restore carousel helpers: arrow class and scroll function
   const arrowBtnClass = 'p-2 rounded-full bg-muted text-muted-foreground hover:bg-blue-100 hover:text-blue-600 hover:border-blue-300 hover:shadow-md hover:scale-110 transition-all';
@@ -368,7 +368,7 @@ export default function ChatInterface() {
     if (comprehensionPercent === 100 && !celebratedRef.current) {
       celebratedRef.current = true;
       toast.success('100% comprehension reached!', {
-        description: 'Outstanding work — you mastered this material.',
+        description: 'Outstanding work â€” you mastered this material.',
       });
     } else if (comprehensionPercent < 100) {
       celebratedRef.current = false;
@@ -652,7 +652,7 @@ export default function ChatInterface() {
                   <div className="flex items-center justify-between px-2 mb-3">
                     <div />
                     <div className="flex items-center gap-2">
-                      {/* count displayed in library header — removed duplicate indicator here */}
+                      {/* count displayed in library header â€” removed duplicate indicator here */}
                     </div>
                   </div>
 
@@ -688,7 +688,7 @@ export default function ChatInterface() {
                                   {article.title}
                                 </h3>
                                 <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mt-1 truncate">
-                                  {article.authors.join(', ')} • {article.year}
+                                  {article.authors.join(', ')} â€¢ {article.year}
                                 </p>
                               </div>
                             </div>
@@ -740,7 +740,7 @@ export default function ChatInterface() {
             })()}
           </section>
 
-          {/* ═══ Guided Questions — primary tool to sharpen understanding ═══ */}
+          {/* â•â•â• Guided Questions â€” primary tool to sharpen understanding â•â•â• */}
           {!isLecturerView && (
             <GuidingQuestionsBlock
               disabled={!canChat}
@@ -802,7 +802,7 @@ export default function ChatInterface() {
             const t = analysisType;
             setAnalyzedArticles((prev) => new Set([...prev, ...selectedArticles]));
             if (t === 'compare') setComparedArticles((prev) => new Set([...prev, ...selectedArticles]));
-            // Demo flag — forces Research Chat bar to 100% so the celebration effect is visible
+            // Demo flag â€” forces Research Chat bar to 100% so the celebration effect is visible
             try { localStorage.setItem('demo-comprehension-100', '1'); } catch {}
             window.dispatchEvent(new CustomEvent('comprehension-demo-100'));
             setAnalysisType(null);

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { ChevronDown, Check } from 'lucide-react';
-import { useTheme, AVAILABLE_FONTS, FontName } from '../context/ThemeContext';
+import { useTheme, AVAILABLE_FONTS, FontName } from '../../context/ThemeContext';
 
 export default function FontSelector() {
   const { font, setFont, availableFonts, theme } = useTheme();

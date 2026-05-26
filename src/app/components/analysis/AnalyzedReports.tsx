@@ -1,16 +1,16 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import {
   BarChart, FileText, Calendar, GitCompare, Trash2, Search,
   ChevronDown, ChevronUp, Eye, Download
 } from 'lucide-react';
-import { mockArticles, Article } from '../data/mockData';
-import { CHAT_LABEL } from '../config/nav';
-import { loadUploadedArticles } from '../../utils/articleStore';
+import { mockArticles, Article } from '../../data/mockData';
+import { CHAT_LABEL } from '../../config/nav';
+import { loadUploadedArticles } from '../../../utils/articleStore';
 import { toast } from 'sonner';
 import AnalysisResultsModal from './AnalysisResultsModal';
 import ComparisonModal from './ComparisonModal';
-import ArticleIcon from './ui/ArticleIcon';
-import SinglePDFViewer from './SinglePDFViewer';
+import ArticleIcon from '../ui/ArticleIcon';
+import SinglePDFViewer from '../library/SinglePDFViewer';
 
 interface AnalysisReport {
   id: string;
@@ -69,7 +69,7 @@ export default function AnalyzedReports() {
   };
 
   const handleExport = (report: AnalysisReport) => {
-    toast.success(`Exporting "${report.name}" as PDF…`);
+    toast.success(`Exporting "${report.name}" as PDFâ€¦`);
   };
 
   const handleViewAnalysis = (report: AnalysisReport) => {
@@ -115,7 +115,7 @@ export default function AnalyzedReports() {
               </div>
               <div>
                 <h1 className="font-bold text-foreground text-xl">Analyzed Reports</h1>
-                <p className="text-sm text-muted-foreground">{reports.length} reports · {filteredReports.length} shown</p>
+                <p className="text-sm text-muted-foreground">{reports.length} reports Â· {filteredReports.length} shown</p>
               </div>
             </div>
           </div>
@@ -126,7 +126,7 @@ export default function AnalyzedReports() {
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
                 type="text"
-                placeholder="Search reports…"
+                placeholder="Search reportsâ€¦"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2.5 border border-input rounded-xl text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent bg-muted focus:bg-card transition-all"
@@ -155,7 +155,7 @@ export default function AnalyzedReports() {
                     </ArticleIcon>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-foreground truncate">{article.title}</p>
-                      <p className="text-xs text-muted-foreground">{article.authors[0]} et al. · {article.year}</p>
+                      <p className="text-xs text-muted-foreground">{article.authors[0]} et al. Â· {article.year}</p>
                     </div>
                     <button onClick={() => setSinglePDFView(article)} className="p-2 text-muted-foreground hover:text-foreground rounded-md" title="Open PDF">
                       <Eye className="w-4 h-4" />
@@ -180,7 +180,7 @@ export default function AnalyzedReports() {
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
                         <p className="font-bold text-foreground truncate">{report.name}</p>
-                        <p className="text-xs text-muted-foreground mt-1">{report.articleIds.length} articles · {report.analysisDate}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{report.articleIds.length} articles Â· {report.analysisDate}</p>
                       </div>
                       <div className="flex items-center gap-2">
                         <button onClick={() => { setCompareArticles(getArticlesForReport(report.articleIds)); setShowCompareModal(true); }} className="px-3 py-1 rounded-lg bg-blue-50 text-blue-700 text-xs font-bold">Open Comparison</button>

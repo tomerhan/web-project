@@ -1,6 +1,6 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { GitCompare, Download, Plus, X, Check } from 'lucide-react';
-import { mockArticles, Article } from '../data/mockData';
+import { mockArticles, Article } from '../../data/mockData';
 
 interface ComparisonProps {
   onNavigate: (page: string) => void;
