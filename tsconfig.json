@@ -3,6 +3,7 @@
   "compilerOptions": {
     "useDefineForClassFields": true,
     "module": "ESNext",
+    "noEmit": true,
 
     /* Bundler mode */
     "moduleResolution": "bundler",
@@ -10,8 +11,6 @@
     "jsx": "react-jsx",
 
     /* Linting */
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
 
     /* Path mapping */

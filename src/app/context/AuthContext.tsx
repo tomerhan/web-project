@@ -21,7 +21,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
-      const res = await fetch('/api/auth/login', {
+      const API_BASE = ((import.meta as any)?.env?.VITE_API_URL as string) ?? 'http://localhost:4000';
+      const res = await fetch(`${API_BASE}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -42,7 +43,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = async (payload: { name: string; email: string; institution: string; password: string; }) => {
     try {
-      const res = await fetch('/api/auth/register', {
+      const API_BASE = ((import.meta as any)?.env?.VITE_API_URL as string) ?? 'http://localhost:4000';
+      const res = await fetch(`${API_BASE}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

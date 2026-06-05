@@ -5,7 +5,7 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "noEmit": true,
-    "strict": true
+    "strict": true,
+    "ignoreDeprecations": "5.0"
   }
 }

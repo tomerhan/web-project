@@ -404,7 +404,7 @@ export default function AnalysisResultsModal({ articles, depth, onClose }: Analy
                     fill="#8884d8"
                     dataKey="value"
                   >
-                    {methodData.map((entry, index) => (
+                    {methodData.map((_entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>

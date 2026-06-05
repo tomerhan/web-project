@@ -3,17 +3,17 @@ import {
   History, GitCompare, MessageSquare, BookOpen,
   Trash2, Search, Calendar, BarChart3, FileText, Edit, X, Check
 } from 'lucide-react';
-import { mockAnalysisSessions, mockArticles, mockChatHistory, ChatMessage } from '../../data/mockData';
+import { mockAnalysisSessions, mockArticles, mockChatHistory, ChatMessage, AnalysisSession } from '../../data/mockData';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
 
-const TYPE_ICONS = {
+const TYPE_ICONS: Record<AnalysisSession['type'], typeof GitCompare> = {
   comparison: GitCompare,
   chat:        MessageSquare,
   summary:     BarChart3,
 };
 
-const TYPE_COLORS = {
+const TYPE_COLORS: Record<AnalysisSession['type'], string> = {
   comparison: 'bg-purple-100 text-purple-700 border-purple-200',
   chat:        'bg-blue-100 text-blue-700 border-blue-200',
   summary:     'bg-emerald-100 text-emerald-700 border-emerald-200',
@@ -22,10 +22,10 @@ const TYPE_COLORS = {
 export default function HistoryPage() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
-  const [sessions, setSessions] = useState(() => {
+  const [sessions, setSessions] = useState<AnalysisSession[]>(() => {
     try {
       const raw = localStorage.getItem('analysis_sessions_v1');
-      if (raw) return JSON.parse(raw);
+      if (raw) return JSON.parse(raw) as AnalysisSession[];
     } catch (e) { /* ignore */ }
     return mockAnalysisSessions;
   });
@@ -67,7 +67,7 @@ export default function HistoryPage() {
     resumeWithMessages(msgs.length ? msgs : [msg]);
   };
 
-  const resumeFromSession = (session: any) => {
+  const resumeFromSession = (session: AnalysisSession) => {
     let msgs: ChatMessage[] = [];
     if (session.type === 'chat') msgs = mockChatHistory.filter(m => session.articleIds.includes(m.articleId));
     try {
@@ -202,7 +202,7 @@ export default function HistoryPage() {
                                     />
                                     <button
                                       onClick={() => {
-                                        setSessions((prev) => prev.map(s => s.id === session.id ? { ...s, name: editingName || s.name } : s));
+                                        setSessions((prev) => prev.map((s) => s.id === session.id ? { ...s, name: editingName || s.name } : s));
                                         setEditingSessionId(null);
                                         setEditingName('');
                                         toast.success('Session name updated');

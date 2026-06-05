@@ -1,4 +1,4 @@
-﻿import { X, Clock, FileText, ChevronRight } from 'lucide-react';
+﻿import { X, Clock, FileText } from 'lucide-react';
 import { ChatMessage, Article } from '../../data/mockData';
 
 interface HistoryModalProps {
@@ -60,11 +60,11 @@ export default function HistoryModal({ onClose, messages, selectedArticles }: Hi
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
                       <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1 block">{msg.timestamp}</span>
-                      <p className="text-sm font-bold text-foreground">{msg.content}</p>
+                      <p className="text-sm font-bold text-foreground">{msg.question}</p>
                     </div>
                   </div>
                   <div className="pl-4 border-l-2 border-border">
-                    <p className="text-sm text-muted-foreground line-clamp-2">{msg.response}</p>
+                    <p className="text-sm text-muted-foreground line-clamp-2">{msg.answer}</p>
                   </div>
                 </div>
               ))}
