@@ -2,10 +2,12 @@
 import { useNavigate } from 'react-router';
 import { FileText, Mail, Lock, User, Building, ArrowRight, Sun, Moon } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
+import { useAuth } from '../../context/AuthContext';
 
 export default function Register() {
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
+  const { register } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -14,9 +16,34 @@ export default function Register() {
     confirmPassword: ''
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    navigate('/login');
+    setError(null);
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+    setLoading(true);
+    try {
+      const ok = await register({
+        name: formData.name,
+        email: formData.email,
+        institution: formData.institution,
+        password: formData.password,
+      });
+      if (ok) {
+        navigate('/');
+      } else {
+        setError('Registration failed');
+      }
+    } catch (err) {
+      setError('Registration error');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleChange = (field: string, value: string) => {
@@ -150,13 +177,17 @@ export default function Register() {
               </span>
             </div>
 
-            <button
-              type="submit"
-              className="w-full py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium flex items-center justify-center gap-2"
-            >
-              Create Account
-              <ArrowRight className="w-5 h-5" />
-            </button>
+            <div>
+              {error && <p className="text-sm text-red-600 mb-2">{error}</p>}
+              <button
+                type="submit"
+                disabled={loading}
+                className={`w-full py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium flex items-center justify-center gap-2 ${loading ? 'opacity-60 cursor-not-allowed' : ''}`}
+              >
+                {loading ? 'Creating account...' : 'Create Account'}
+                <ArrowRight className="w-5 h-5" />
+              </button>
+            </div>
           </form>
 
           <div className="mt-6 text-center">
