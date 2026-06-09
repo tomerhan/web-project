@@ -12,6 +12,18 @@ import ComparisonModal from './ComparisonModal';
 import ArticleIcon from '../ui/ArticleIcon';
 import SinglePDFViewer from '../library/SinglePDFViewer';
 
+/*
+ * AnalyzedReports
+ * -------------------------------------------------------------------------
+ * The "Analyzed Reports" page. Lists previously-run analyses (seeded with
+ * mock reports). Two columns:
+ *   - Left  : articles referenced by any report (open each in the PDF viewer).
+ *   - Right : comparison reports (2+ articles) -> open ComparisonModal.
+ * Clicking a report opens AnalysisResultsModal. Articles are resolved by
+ * merging localStorage uploads with the mock article seed.
+ */
+
+// One saved report = a named set of article ids + when it was run + its depth.
 interface AnalysisReport {
   id: string;
   name: string;
@@ -22,6 +34,7 @@ interface AnalysisReport {
 }
 
 export default function AnalyzedReports() {
+  // UI state: search box, which report row is expanded, and which modal is open.
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [selectedReport, setSelectedReport] = useState<AnalysisReport | null>(null);
@@ -57,10 +70,12 @@ export default function AnalyzedReports() {
     }
   ]);
 
+  // Reports matching the current search text (case-insensitive name match).
   const filteredReports = reports.filter((report) =>
     report.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // Delete with a confirm prompt, then drop it from state + toast.
   const handleDelete = (id: string, name: string) => {
     if (window.confirm(`Delete "${name}"?`)) {
       setReports((prev) => prev.filter((r) => r.id !== id));
@@ -76,6 +91,9 @@ export default function AnalyzedReports() {
     setSelectedReport(report);
   };
 
+  // Resolve a report's article ids into full Article objects. Looks first in
+  // uploaded (localStorage) articles, then the mock seed; falls back to mocks
+  // only if reading storage throws. filter(Boolean) drops any unknown ids.
   const getArticlesForReport = (articleIds: string[]) => {
     try {
       const stored = loadUploadedArticles();
@@ -86,7 +104,7 @@ export default function AnalyzedReports() {
     }
   };
 
-  // All available articles (stored uploads merged with mocks)
+  // All available articles (stored uploads merged with mocks, de-duped by id).
   const allArticles = (() => {
     try {
       const stored = loadUploadedArticles();
@@ -96,13 +114,16 @@ export default function AnalyzedReports() {
     }
   })();
 
-  // Analyzed article ids are those referenced by any report
+  // Unique set of article ids touched by any report -> the left-column list.
   const analyzedArticleIds = Array.from(new Set(reports.flatMap(r => r.articleIds)));
   const analyzedArticles = allArticles.filter(a => analyzedArticleIds.includes(a.id));
 
-  // Comparison reports are reports with 2+ articles
+  // Right column: only reports with 2+ articles count as comparisons, and they
+  // still respect the search filter.
   const comparisonReports = reports.filter(r => r.articleIds.length >= 2 && r.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
+  // Render: header + search -> two-column grid (articles | comparisons) ->
+  // the three modals (PDF viewer, results, comparison) mounted conditionally.
   return (
     <div className="flex-1 flex flex-col min-w-0 min-h-0 relative overflow-hidden bg-muted">
       {/* Header */}

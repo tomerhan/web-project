@@ -2,22 +2,35 @@
 import { GitCompare, Download, Plus, X, Check } from 'lucide-react';
 import { mockArticles, Article } from '../../data/mockData';
 
+/*
+ * Comparison (full page)
+ * -------------------------------------------------------------------------
+ * Standalone side-by-side comparison page (not the modal). User picks up to
+ * 4 articles, and they are laid out as a table: rows = fields (title, authors,
+ * year, topics, methodology, findings, citations), columns = articles.
+ * Bottom shows static "AI insights". All data comes from mockArticles.
+ */
+
 interface ComparisonProps {
-  onNavigate: (page: string) => void;
+  onNavigate: (page: string) => void;   // route helper (currently unused here)
 }
 
 export default function Comparison({ onNavigate }: ComparisonProps) {
+  // Pre-seed with two articles; selector panel is hidden until toggled.
   const [selectedArticles, setSelectedArticles] = useState<Article[]>([mockArticles[0], mockArticles[3]]);
   const [showSelector, setShowSelector] = useState(false);
 
+  // Add/remove an article from the selection. Hard cap of 4 columns.
   const toggleArticleSelection = (article: Article) => {
     if (selectedArticles.find(a => a.id === article.id)) {
-      setSelectedArticles(prev => prev.filter(a => a.id !== article.id));
+      setSelectedArticles(prev => prev.filter(a => a.id !== article.id));   // already in -> remove
     } else if (selectedArticles.length < 4) {
-      setSelectedArticles(prev => [...prev, article]);
+      setSelectedArticles(prev => [...prev, article]);                       // room left -> add
     }
   };
 
+  // The rows of the comparison table, in display order. `key` maps to an
+  // Article field; `label` is the human heading.
   const comparisonCategories = [
     { key: 'title', label: 'Title' },
     { key: 'authors', label: 'Authors' },
@@ -28,6 +41,9 @@ export default function Comparison({ onNavigate }: ComparisonProps) {
     { key: 'citations', label: 'Citations' }
   ];
 
+  // Render one table cell. Arrays get special formatting: keyFindings -> a
+  // bulleted list, topics -> coloured pills, anything else array -> CSV.
+  // Scalars are stringified, with '-' as a fallback for empty values.
   const renderCellContent = (article: Article, key: string) => {
     const value = article[key as keyof Article];
 
@@ -61,6 +77,8 @@ export default function Comparison({ onNavigate }: ComparisonProps) {
     return value?.toString() || '-';
   };
 
+  // Render: header (select/export buttons) -> optional article picker grid ->
+  // comparison table OR empty state -> static AI insights (only when 2+ picked).
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}

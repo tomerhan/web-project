@@ -4,6 +4,20 @@ import { ChatMessage, mockArticles, mockChatHistory } from '../../data/mockData'
 import { loadUploadedArticles } from '../../../utils/articleStore';
 import { toast } from 'sonner';
 
+/*
+ * ChatAnalyzer
+ * -------------------------------------------------------------------------
+ * The "Research Chat" screen. User groups articles together, creates a chat,
+ * and asks questions; a canned AI reply streams back after a delay (no real
+ * backend). A left rail tracks a "comprehension %" that climbs with each
+ * message and celebrates at 100%. Groups and messages persist in localStorage.
+ *
+ * Entry points (besides normal use):
+ *   - resumed session  : keys left in localStorage by the History page.
+ *   - comparison -> chat: 'create-chat-from-comparison' window event.
+ */
+
+// A named bundle of article ids the user wants to discuss together.
 interface ArticleGroup {
   id: string;
   name: string;
@@ -11,6 +25,7 @@ interface ArticleGroup {
 }
 
 export default function ChatAnalyzer() {
+  // Chat transcript, lazily restored from localStorage on first render.
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
     try {
       const raw = localStorage.getItem('chat_analyzer_messages_v1');
@@ -39,7 +54,8 @@ export default function ChatAnalyzer() {
   const [newGroupName, setNewGroupName] = useState('');
   const [groupArticleSelection, setGroupArticleSelection] = useState<Set<string>>(new Set());
 
-  const activeGroup = groups.find(g => g.id === activeGroupId);
+  const activeGroup = groups.find(g => g.id === activeGroupId);   // currently selected group (if any)
+  // All articles available to chat about: uploads merged with mock seed.
   const allArticles = useMemo(() => {
     try {
       const stored = loadUploadedArticles();
@@ -47,10 +63,12 @@ export default function ChatAnalyzer() {
     } catch (e) { return mockArticles; }
   }, []);
 
+  // Resolve the active group's ids into full Article objects (for the chips).
   const activeGroupArticles = activeGroup
     ? allArticles.filter(a => activeGroup.articleIds.includes(a.id))
     : [];
 
+  // Create a new group from the modal's name + checkbox selection, activate it.
   const createGroup = () => {
     if (!newGroupName.trim() || groupArticleSelection.size === 0) return;
     const g: ArticleGroup = {
@@ -83,12 +101,14 @@ export default function ChatAnalyzer() {
     };
   }, []);
 
+  // Comprehension score: 12% per message, capped at 100 (or forced to 100 by
+  // the demo override). Purely a gamification number, not a real assessment.
   const comprehensionPercent = useMemo(
     () => (demoForce100 ? 100 : Math.min(100, messages.length * 12)),
     [messages.length, demoForce100]
   );
 
-  // Celebration toast once at 100%
+  // Celebration toast: fire once when hitting 100%; reset the latch below 100.
   const celebratedRef = useRef(false);
   useEffect(() => {
     if (comprehensionPercent === 100 && !celebratedRef.current) {
@@ -136,6 +156,9 @@ export default function ChatAnalyzer() {
 
   // Always show full answers in chat (no show more/less)
 
+  // Send a question: push the user message immediately, show the typing dots,
+  // then after 1.5s patch in a canned AI answer + fake sources. Scrolls to
+  // bottom after both the question and the answer land.
   const send = () => {
     const text = inputMessage.trim();
     if (!text) return;
@@ -169,7 +192,8 @@ export default function ChatAnalyzer() {
     try { localStorage.setItem('chat_analyzer_messages_v1', JSON.stringify(messages)); } catch (e) { /* ignore */ }
   }, [messages]);
 
-  // Listen for comparison -> create chat events
+  // Listen for the ComparisonModal "Create Chat" event: build a group from the
+  // passed article ids, make it active, and optionally seed messages.
   useEffect(() => {
     const handler = (e: any) => {
       const detail = e?.detail;
@@ -186,6 +210,10 @@ export default function ChatAnalyzer() {
     return () => window.removeEventListener('create-chat-from-comparison', handler as EventListener);
   }, []);
 
+  // Render: header -> pre-chat control bar (difficulty + Create Chat) ->
+  // body split into the comprehension rail (left) and the chat section
+  // (group tabs, group manager menu, context bar, create-group modal,
+  // message list with typing dots, and the input row).
   return (
     <div className="flex flex-col h-full w-full bg-background overflow-hidden">
       <header className="bg-card border-b border-border px-5 py-3.5 flex items-center justify-between shrink-0 z-10 shadow-sm">

@@ -1,12 +1,22 @@
 ﻿import { X, Download, Eye } from 'lucide-react';
 import { SavedAnalysis } from '../../data/mockData';
 
+/*
+ * AnalysisViewModal
+ * -------------------------------------------------------------------------
+ * Read-only viewer for a single already-saved analysis. Shows the prompt,
+ * the result text, an optional comparison block, and any extracted questions.
+ * The only action is Download, which builds a plain-text file in the browser.
+ */
+
 interface AnalysisViewModalProps {
-  analysis: SavedAnalysis;
+  analysis: SavedAnalysis;   // the saved record to display
   onClose: () => void;
 }
 
 export default function AnalysisViewModal({ analysis, onClose }: AnalysisViewModalProps) {
+  // Build a Markdown-ish text document from the analysis fields and trigger a
+  // client-side download via a temporary <a> + object URL (no server needed).
   const handleDownload = () => {
     const content = `
 # ${analysis.name}
@@ -30,17 +40,20 @@ ${analysis.questionsFromPrompt.map((q, i) => `${i + 1}. ${q}`).join('\n')}` : ''
 ## Created: ${new Date(analysis.createdAt).toLocaleDateString()}
     `.trim();
 
+    // Wrap text in a Blob, make a temporary download link, click it, clean up.
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${analysis.name.replace(/\s+/g, '_')}_analysis.txt`;
+    a.download = `${analysis.name.replace(/\s+/g, '_')}_analysis.txt`; // spaces -> underscores
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    URL.revokeObjectURL(url);   // release the blob URL to avoid a memory leak
   };
 
+  // Render: header -> scrollable body (article info, prompt, result, optional
+  // comparison, optional numbered questions) -> footer with Download button.
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-background border border-border rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden">

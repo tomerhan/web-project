@@ -1,10 +1,19 @@
 import { useState, useEffect } from 'react';
 import { X, CheckCircle2, Circle, Loader2, Sparkles, Lightbulb } from 'lucide-react';
 
+/*
+ * AnalysisStagesDialog
+ * -------------------------------------------------------------------------
+ * The fake "loading" dialog shown while an analyze/compare runs. It does NOT
+ * do real work — it walks through a fixed list of stages on timers to give
+ * the impression of processing, then calls onComplete(). Also rotates a
+ * "Did you know?" trivia line to keep the wait interesting.
+ */
+
 interface AnalysisStagesDialogProps {
-  type: 'analyze' | 'compare';
-  onClose: () => void;
-  onComplete: () => void;
+  type: 'analyze' | 'compare';   // which stage list to show
+  onClose: () => void;           // user cancelled / closed early
+  onComplete: () => void;        // all stages finished -> open the real result
 }
 
 const TRIVIA = [
@@ -21,10 +30,11 @@ const TRIVIA = [
 ];
 
 export default function AnalysisStagesDialog({ type, onClose, onComplete }: AnalysisStagesDialogProps) {
-  const [currentStage, setCurrentStage] = useState(0);
-  const [triviaIdx, setTriviaIdx] = useState(Math.floor(Math.random() * TRIVIA.length));
-  const [triviaVisible, setTriviaVisible] = useState(true);
+  const [currentStage, setCurrentStage] = useState(0);                              // index of stage in progress
+  const [triviaIdx, setTriviaIdx] = useState(Math.floor(Math.random() * TRIVIA.length)); // start on a random fact
+  const [triviaVisible, setTriviaVisible] = useState(true);                         // drives the fade transition
 
+  // Pick the stage list based on mode. Compare has 4 steps, analyze has 3.
   const stages =
     type === 'compare'
       ? [
@@ -39,7 +49,8 @@ export default function AnalysisStagesDialog({ type, onClose, onComplete }: Anal
           { title: 'Synthesizing insights',desc: 'Applying AI models to generate summary' },
         ];
 
-  /* Advance stages */
+  /* Advance stages: every 1.5s bump to the next stage. Once past the last
+   * stage, wait 0.8s then fire onComplete(). Timers are cleared on unmount. */
   useEffect(() => {
     if (currentStage < stages.length) {
       const t = setTimeout(() => setCurrentStage((p) => p + 1), 1500);
@@ -50,7 +61,7 @@ export default function AnalysisStagesDialog({ type, onClose, onComplete }: Anal
     }
   }, [currentStage, stages.length, onComplete]);
 
-  /* Rotate trivia every 3 s */
+  /* Rotate trivia every 3s: fade out (300ms), swap to next fact, fade in. */
   useEffect(() => {
     const interval = setInterval(() => {
       setTriviaVisible(false);
@@ -62,8 +73,11 @@ export default function AnalysisStagesDialog({ type, onClose, onComplete }: Anal
     return () => clearInterval(interval);
   }, []);
 
+  // Progress % for the ring + bar (stages done / total).
   const pct = Math.round((currentStage / stages.length) * 100);
 
+  // Render: header -> animated SVG ring spinner -> progress bar -> stage list
+  // (each row: check / spinner / empty circle) -> trivia card -> footer.
   return (
     <div className="fixed inset-0 bg-background/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-card rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-border">
@@ -116,12 +130,14 @@ export default function AnalysisStagesDialog({ type, onClose, onComplete }: Anal
             </div>
           </div>
 
-          {/* Stages */}
+          {/* Stages: each row's icon/colour depends on where currentStage is
+              relative to its index (done = green check, active = spinner,
+              pending = dimmed empty circle). */}
           <div className="space-y-4">
             {stages.map((stage, idx) => {
-              const isCompleted = currentStage > idx;
-              const isActive    = currentStage === idx;
-              const isPending   = currentStage < idx;
+              const isCompleted = currentStage > idx;   // already passed this stage
+              const isActive    = currentStage === idx;  // currently on this stage
+              const isPending   = currentStage < idx;    // not reached yet
               return (
                 <div
                   key={idx}

@@ -8,8 +8,21 @@ import { toast } from 'sonner';
 import ArticleIcon from '../ui/ArticleIcon';
 import { RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Legend } from 'recharts';
 
+/*
+ * ComparisonModal
+ * -------------------------------------------------------------------------
+ * The richer, modal version of the comparison view (opened from
+ * AnalyzedReports). Adds visual scoring on top of the plain table:
+ *   - a radar chart comparing papers across 4 dimensions
+ *   - per-paper score cards (citations, impact, progress bars)
+ *   - a "Best" badge on the most-cited paper
+ *   - a field-by-field table + collapsible AI insight cards
+ * Can also spin off a chat via the 'create-chat-from-comparison' event.
+ * NOTE: scores are mock/random (see generateScores) — not real metrics.
+ */
+
 interface ComparisonModalProps {
-  articles: Article[];
+  articles: Article[];   // papers to compare (up to ~4 look good)
   onClose: () => void;
 }
 
@@ -27,6 +40,9 @@ interface PaperScores {
   impactFactor: number;
 }
 
+// Fabricate quality scores for a paper. Only `citations` is real; reliability
+// is loosely tied to citations, the rest are random within plausible ranges.
+// Used to fill the radar chart and the per-paper score cards.
 const generateScores = (article: Article): PaperScores => ({
   reliability: Math.min(100, 65 + (article.citations / 100) * 35),
   readability: Math.floor(70 + Math.random() * 25),
@@ -65,6 +81,9 @@ const comparisonCategories = [
   { key: 'abstract',     label: 'Abstract' },
 ];
 
+// Render one comparison-table cell, formatting by field type: keyFindings ->
+// bulleted list, topics -> coloured pills, other arrays -> CSV, abstract ->
+// paragraph, scalars -> plain text (em-dash when missing).
 function renderCell(article: Article, key: string) {
   const value = article[key as keyof Article];
   if (key === 'keyFindings' && Array.isArray(value)) {
@@ -98,17 +117,20 @@ function renderCell(article: Article, key: string) {
 }
 
 export default function ComparisonModal({ articles, onClose }: ComparisonModalProps) {
-  const [showExplanation, setShowExplanation] = useState(false);
-  const [activeInsight, setActiveInsight] = useState<number | null>(null);
+  const [showExplanation, setShowExplanation] = useState(false);          // "How AI got this?" banner
+  const [activeInsight, setActiveInsight] = useState<number | null>(null); // expanded insight card
+  // "Best" paper = highest citation count; gets the gold badge/border.
   const bestMatchIdx = articles.reduce(
     (best, a, i) => (a.citations > articles[best].citations ? i : best),
     0
   );
 
-  /* â”€â”€â”€ Generate scores for each article â”€â”€â”€ */
+  /* ─── Generate scores for each article (parallel to `articles` by index) ─── */
   const articleScores = articles.map((article) => generateScores(article));
 
-  /* â”€â”€â”€ Radar chart data â”€â”€â”€ */
+  /* ─── Radar chart data ───
+   * One row per metric; each row spreads in a `Paper N` key per article so
+   * recharts can draw one Radar series per paper over the shared axes. */
   const radarData = [
     {
       metric: 'Reliability',
@@ -156,6 +178,9 @@ export default function ComparisonModal({ articles, onClose }: ComparisonModalPr
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {/* Create Chat: broadcast a window event that ChatAnalyzer listens
+                for, which spins up a new chat group from these articles, then
+                close this modal. Decoupled via CustomEvent (no shared state). */}
             <button
               onClick={() => {
                 const detail = { articleIds: articles.map(a => a.id), name: `Comparison: ${articles.map(a => a.title).slice(0,2).join(' / ')}` };

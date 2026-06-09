@@ -19,10 +19,21 @@ import {
   PolarAngleAxis, PolarRadiusAxis
 } from 'recharts';
 
+/*
+ * AnalysisResultsModal
+ * -------------------------------------------------------------------------
+ * Full-screen modal that shows the result of analyzing one or more papers.
+ * Two completely different renders depending on who is logged in:
+ *   - STUDENT  -> small "receipt" card only. No charts. Their analysis was
+ *                 submitted for the lecturer to review.
+ *   - LECTURER -> full dashboard: stat cards + 5 recharts charts + insights.
+ * All the chart numbers are derived from the `articles` array passed in.
+ */
+
 interface AnalysisResultsModalProps {
-  articles: Article[];
-  depth: 'Fast' | 'Regular' | 'Deep';
-  onClose: () => void;
+  articles: Article[];                       // papers selected for this report
+  depth: 'Fast' | 'Regular' | 'Deep';        // analysis mode (affects Depth metric)
+  onClose: () => void;                        // close the modal
 }
 
 const EXPLANATION =
@@ -32,15 +43,20 @@ const EXPLANATION =
 const COLORS = ['#dc2626', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899'];
 
 export default function AnalysisResultsModal({ articles, depth, onClose }: AnalysisResultsModalProps) {
+  // Who is viewing? Lecturers see charts, students see a receipt.
   const { user } = useAuth();
   const role = user?.role === 'lecturer' ? 'lecturer' : 'student';
+  // Stable id for this batch of articles (used to cache/fetch the analysis).
   const analysisId = `an-${articles.map(a => a.id).join('-').slice(0, 24)}`;
 
+  // payload = server response. Shape differs by role (receipt vs full payload).
   const [payload, setPayload] = useState<StudentAnalysisReceipt | LecturerAnalysisPayload | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showExplanation, setShowExplanation] = useState(false);
-  const [activeSection, setActiveSection] = useState<number | null>(null);
+  const [showExplanation, setShowExplanation] = useState(false);   // "How AI got this?" banner toggle
+  const [activeSection, setActiveSection] = useState<number | null>(null); // which insight card is expanded
 
+  // Fetch the analysis on mount / when the article set, role, or depth changes.
+  // `cancelled` guards against setting state after the modal unmounts.
   useEffect(() => {
     let cancelled = false;
     getAnalysis(analysisId, role, articles, depth).then((p) => {
@@ -49,7 +65,10 @@ export default function AnalysisResultsModal({ articles, depth, onClose }: Analy
     return () => { cancelled = true; };
   }, [analysisId, role, depth]);
 
-  // Student view: receipt summary (no chart data, no URL textbox)
+  // ─── Student render (early return) ───
+  // Students never see the charts. They get a small confirmation card showing
+  // status + created time, telling them the data went to their lecturer.
+  // Everything below this `if` block only runs for lecturers.
   if (role === 'student') {
     const receipt = payload && !isLecturerPayload(payload) ? payload : null;
     return (
@@ -112,12 +131,15 @@ export default function AnalysisResultsModal({ articles, depth, onClose }: Analy
 
   // Lecturer view continues below with full charts.
 
-  /* â”€â”€â”€ Calculate Statistics â”€â”€â”€ */
-  const totalCitations = articles.reduce((sum, a) => sum + a.citations, 0);
-  const avgCitations = Math.round(totalCitations / articles.length);
+  /* ─── Calculate Statistics ───
+   * Everything below is derived synchronously from the `articles` prop.
+   * No API call: the charts are computed client-side from paper metadata. */
+  const totalCitations = articles.reduce((sum, a) => sum + a.citations, 0); // sum of all citations
+  const avgCitations = Math.round(totalCitations / articles.length);        // mean per paper
   const totalArticles = articles.length;
 
-  // Year distribution
+  // Year distribution: count how many papers were published each year.
+  // Shape: { 2021: 3, 2022: 5, ... } -> later turned into sorted chart rows.
   const yearCounts = articles.reduce((acc, a) => {
     acc[a.year] = (acc[a.year] || 0) + 1;
     return acc;
@@ -127,7 +149,8 @@ export default function AnalysisResultsModal({ articles, depth, onClose }: Analy
     .map(([year, count]) => ({ year: parseInt(year), count }))
     .sort((a, b) => a.year - b.year);
 
-  // Topics frequency
+  // Topics frequency: tally every topic tag across all papers, keep the top 6.
+  // Feeds the horizontal "Most Frequent Research Topics" bar chart.
   const topicCounts = articles.reduce((acc, a) => {
     a.topics.forEach(topic => {
       acc[topic] = (acc[topic] || 0) + 1;
@@ -140,7 +163,8 @@ export default function AnalysisResultsModal({ articles, depth, onClose }: Analy
     .sort((a, b) => b.count - a.count)
     .slice(0, 6);
 
-  // Methodology breakdown
+  // Methodology breakdown: bucket each paper's methodology string into one of
+  // four coarse categories by keyword matching. Feeds the pie chart.
   const methodCounts = articles.reduce((acc, a) => {
     const method = a.methodology.includes('survey') || a.methodology.includes('literature')
       ? 'Literature Review'
@@ -155,7 +179,8 @@ export default function AnalysisResultsModal({ articles, depth, onClose }: Analy
 
   const methodData = Object.entries(methodCounts).map(([name, value]) => ({ name, value }));
 
-  // Citation distribution (for bar chart)
+  // Citation distribution: one row per paper, sorted most-cited first.
+  // Feeds the "Citation Distribution by Paper" vertical bar chart.
   const citationData = articles
     .map((a, idx) => ({
       name: `Paper ${idx + 1}`,
@@ -164,7 +189,9 @@ export default function AnalysisResultsModal({ articles, depth, onClose }: Analy
     }))
     .sort((a, b) => b.citations - a.citations);
 
-  // Quality metrics (radar chart)
+  // Quality metrics: 5 synthetic 0-100 scores for the radar chart. Each is a
+  // rough heuristic (impact, recency, topic coverage, chosen depth, plus a
+  // randomized "consistency"). These are illustrative, not real measurements.
   const qualityMetrics = [
     {
       metric: 'Avg Impact',
@@ -188,7 +215,9 @@ export default function AnalysisResultsModal({ articles, depth, onClose }: Analy
     }
   ];
 
-  // Key insights
+  // Key insights: 4 human-readable summary blurbs built from the stats above
+  // (publication trend, dominant topic, methodology mix, citation impact).
+  // Rendered as collapsible cards at the bottom of the dashboard.
   const insights = [
     {
       title: 'Publication Trend',
@@ -208,12 +237,16 @@ export default function AnalysisResultsModal({ articles, depth, onClose }: Analy
     }
   ];
 
+  // Export is a stub: shows a toast only, no real file is generated yet.
   const handleExport = (format: 'pdf' | 'excel') => {
     toast.success(`Exporting analysis as ${format.toUpperCase()}â€¦`, {
       description: 'Your statistical report will be ready shortly.',
     });
   };
 
+  // ─── Lecturer dashboard render ───
+  // Layout: header (export + How AI) -> stat cards -> 2 chart rows ->
+  // topic bar chart -> collapsible AI insight cards.
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-2 md:p-6">
       <div className="bg-white w-full max-w-6xl max-h-[95vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-slate-200">
