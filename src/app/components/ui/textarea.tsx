@@ -1,3 +1,4 @@
+// A text box where the user can type multiple lines.
 import * as React from "react";
 
 import { cn } from "./utils";

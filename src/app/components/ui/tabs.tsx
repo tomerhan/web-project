@@ -1,3 +1,4 @@
+// Tabs at the top — click one to switch what's shown below.
 "use client";
 
 import * as React from "react";

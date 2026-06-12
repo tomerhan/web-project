@@ -1,3 +1,4 @@
+// A button that stays highlighted when it's on, like a Bold button in a text editor.
 "use client";
 
 import * as React from "react";

@@ -1,3 +1,4 @@
+// A box you can check or uncheck.
 "use client";
 
 import * as React from "react";

@@ -1,3 +1,4 @@
+// Returns true if the user is on a small screen (phone). Use this to show a different layout on mobile.
 import * as React from "react";
 
 const MOBILE_BREAKPOINT = 768;

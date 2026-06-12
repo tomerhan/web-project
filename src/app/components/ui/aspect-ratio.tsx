@@ -1,3 +1,4 @@
+// Keeps an element at a fixed shape, like 16:9 for a video or 1:1 for a square image.
 "use client";
 
 import * as AspectRatioPrimitive from "@radix-ui/react-aspect-ratio";

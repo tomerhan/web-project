@@ -1,3 +1,4 @@
+// A search box that lets you type and pick from a list of actions (like Spotlight on Mac).
 "use client";
 
 import * as React from "react";

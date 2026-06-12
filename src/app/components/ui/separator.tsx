@@ -1,3 +1,4 @@
+// A thin line that separates two sections of content.
 "use client";
 
 import * as React from "react";

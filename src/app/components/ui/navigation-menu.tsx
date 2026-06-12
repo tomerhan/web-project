@@ -1,3 +1,4 @@
+// A top navigation bar where each item can open a big dropdown with links inside.
 import * as React from "react";
 import * as NavigationMenuPrimitive from "@radix-ui/react-navigation-menu";
 import { cva } from "class-variance-authority";

@@ -1,3 +1,4 @@
+// The text above a form field (like "Email"). Clicking it focuses the field.
 "use client";
 
 import * as React from "react";

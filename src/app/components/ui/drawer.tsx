@@ -1,3 +1,4 @@
+// A panel that slides up from the bottom of the screen, mostly used on mobile.
 "use client";
 
 import * as React from "react";

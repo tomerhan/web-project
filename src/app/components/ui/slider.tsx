@@ -1,3 +1,4 @@
+// A handle you drag left or right to pick a number in a range.
 "use client";
 
 import * as React from "react";

@@ -1,3 +1,4 @@
+// A popup that asks "are you sure?" before the user does something that can't be undone.
 "use client";
 
 import * as React from "react";

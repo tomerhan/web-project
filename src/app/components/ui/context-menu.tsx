@@ -1,3 +1,4 @@
+// A menu that pops up when you right-click on something.
 "use client";
 
 import * as React from "react";

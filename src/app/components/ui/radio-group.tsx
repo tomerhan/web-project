@@ -1,3 +1,4 @@
+// A group of options where you can only pick one.
 "use client";
 
 import * as React from "react";

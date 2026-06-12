@@ -1,3 +1,4 @@
+// A group of toggle buttons where one or more can be active at once.
 "use client";
 
 import * as React from "react";

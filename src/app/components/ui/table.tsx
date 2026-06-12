@@ -1,3 +1,4 @@
+// A table with rows and columns for showing data in a grid.
 "use client";
 
 import * as React from "react";

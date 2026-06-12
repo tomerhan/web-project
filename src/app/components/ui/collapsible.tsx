@@ -1,3 +1,4 @@
+// Click something to show or hide content below it.
 "use client";
 
 import * as CollapsiblePrimitive from "@radix-ui/react-collapsible";

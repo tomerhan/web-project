@@ -1,3 +1,4 @@
+// A code input with one box per digit, like when entering an SMS verification code.
 "use client";
 
 import * as React from "react";

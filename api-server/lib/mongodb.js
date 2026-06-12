@@ -1,3 +1,7 @@
+
+/*
+connection module for mongodb with Singleton pattern
+*/
 const { MongoClient } = require('mongodb');
 
 let client;

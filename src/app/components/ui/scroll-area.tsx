@@ -1,3 +1,4 @@
+// A scrollable box with a nice-looking scrollbar instead of the browser default.
 "use client";
 
 import * as React from "react";

@@ -1,3 +1,4 @@
+// Two panels side by side with a handle you can drag to resize them.
 "use client";
 
 import * as React from "react";

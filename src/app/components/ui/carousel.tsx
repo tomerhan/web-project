@@ -1,3 +1,4 @@
+// A slideshow — scroll through items using left and right arrows.
 "use client";
 
 import * as React from "react";

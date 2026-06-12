@@ -1,3 +1,4 @@
+// A calendar you can click to pick a date.
 "use client";
 
 import * as React from "react";

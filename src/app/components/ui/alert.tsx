@@ -1,3 +1,4 @@
+// A colored box that shows the user an important message or warning.
 import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 

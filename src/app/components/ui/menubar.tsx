@@ -1,3 +1,4 @@
+// A row of menus at the top, like File / Edit / View in a desktop app.
 "use client";
 
 import * as React from "react";

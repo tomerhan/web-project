@@ -1,3 +1,4 @@
+// A dropdown where you click to open a list and pick one item.
 "use client";
 
 import * as React from "react";

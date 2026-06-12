@@ -1,3 +1,4 @@
+// An on/off switch, like a light switch.
 "use client";
 
 import * as React from "react";

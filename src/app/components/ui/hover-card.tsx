@@ -1,3 +1,4 @@
+// A small card that appears when you hover over something.
 "use client";
 
 import * as React from "react";

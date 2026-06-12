@@ -1,3 +1,4 @@
+// A small floating box that opens next to a button, used for filters or mini-forms.
 "use client";
 
 import * as React from "react";

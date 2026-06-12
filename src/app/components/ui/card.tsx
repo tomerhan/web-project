@@ -1,3 +1,4 @@
+// A box with a border that groups related content together.
 import * as React from "react";
 
 import { cn } from "./utils";

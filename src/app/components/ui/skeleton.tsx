@@ -1,3 +1,4 @@
+// A grey flashing placeholder that shows while real content is loading.
 import { cn } from "./utils";
 
 function Skeleton({ className, ...props }: React.ComponentProps<"div">) {

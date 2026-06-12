@@ -1,3 +1,4 @@
+// A bar that fills up to show how far along something is, like a loading bar.
 "use client";
 
 import * as React from "react";

@@ -1,3 +1,4 @@
+// A popup window that appears on top of the page.
 "use client";
 
 import * as React from "react";

@@ -1,3 +1,4 @@
+// A small circle that shows a user's photo, or their initials if there's no photo.
 "use client";
 
 import * as React from "react";

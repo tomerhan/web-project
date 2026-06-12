@@ -1,3 +1,4 @@
+// A basic text field where the user can type one line.
 import * as React from "react";
 
 import { cn } from "./utils";

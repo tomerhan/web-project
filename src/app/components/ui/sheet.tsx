@@ -1,3 +1,4 @@
+// A panel that slides in from the side of the screen, like a mobile menu.
 "use client";
 
 import * as React from "react";

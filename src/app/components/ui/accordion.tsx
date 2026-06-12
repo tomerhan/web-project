@@ -1,3 +1,4 @@
+// Sections you can open and close by clicking on them.
 "use client";
 
 import * as React from "react";

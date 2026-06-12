@@ -1,3 +1,4 @@
+// A menu that opens below a button when you click it.
 "use client";
 
 import * as React from "react";

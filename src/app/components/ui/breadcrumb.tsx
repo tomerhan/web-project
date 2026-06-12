@@ -1,3 +1,4 @@
+// Shows where you are in the app, like: Home > Library > Article.
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { ChevronRight, MoreHorizontal } from "lucide-react";

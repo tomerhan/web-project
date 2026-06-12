@@ -1,3 +1,4 @@
+// Used to draw charts like bar charts, line charts, and pie charts.
 "use client";
 
 import * as React from "react";

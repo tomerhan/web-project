@@ -1,3 +1,4 @@
+// Helpers for building forms — handles field labels, error messages, and layout.
 "use client";
 
 import * as React from "react";

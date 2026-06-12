@@ -1,3 +1,4 @@
+// Small pop-up messages that appear in the corner and disappear on their own (like "Saved!" or "Error").
 "use client";
 
 import { useTheme } from "next-themes";

@@ -1,3 +1,4 @@
+// Previous / 1 2 3 / Next buttons for moving between pages of results.
 import * as React from "react";
 import {
   ChevronLeftIcon,

@@ -1,3 +1,4 @@
+// The side navigation panel with links, icons, and a collapse button.
 "use client";
 
 import * as React from "react";
