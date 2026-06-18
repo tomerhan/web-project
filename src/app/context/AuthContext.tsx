@@ -1,11 +1,20 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
-import { User, mockUsers } from '../data/mockData';
+import { createContext, useContext, useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
+import api from '../services/api';
+
+export interface User {
+  _id: string;
+  name: string;
+  email: string;
+  role: 'lecturer' | 'student';
+  profilePicture?: string;
+  firebaseUid?: string;
+}
 
 interface AuthContextType {
   user: User | null;
-  loginAs: (role: 'lecturer' | 'student') => void;
-  login: (email: string, password: string) => Promise<boolean>;
-  register: (payload: { name: string; email: string; institution: string; password: string; }) => Promise<boolean>;
+  loading: boolean;
+  setUser: (user: User | null) => void;
   logout: () => void;
 }
 
@@ -13,63 +22,34 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const loginAs = (role: 'lecturer' | 'student') => {
-    const found = mockUsers.find(u => u.role === role);
-    if (found) setUser(found);
-  };
-
-  const login = async (email: string, password: string) => {
-    try {
-      const API_BASE = ((import.meta as any)?.env?.VITE_API_URL as string) ?? 'http://localhost:4000';
-      const res = await fetch(`${API_BASE}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-      if (!res.ok) return false;
-      const data = await res.json();
-      // Expecting { user: User, token?: string }
-      if (data?.user) {
-        setUser(data.user as User);
-        if (data.token) localStorage.setItem('authToken', data.token);
-        return true;
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const token = localStorage.getItem('token');
+      if (token) {
+        try {
+          const response = await api.get('/users/profile');
+          setUser(response.data);
+        } catch (error) {
+          console.error('Failed to fetch user profile:', error);
+          localStorage.removeItem('token');
+        }
       }
-      return false;
-    } catch (e) {
-      return false;
-    }
-  };
+      setLoading(false);
+    };
 
-  const register = async (payload: { name: string; email: string; institution: string; password: string; }) => {
-    try {
-      const API_BASE = ((import.meta as any)?.env?.VITE_API_URL as string) ?? 'http://localhost:4000';
-      const res = await fetch(`${API_BASE}/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) return false;
-      const data = await res.json();
-      // Expecting { user: User, token?: string }
-      if (data?.user) {
-        setUser(data.user as User);
-        if (data.token) localStorage.setItem('authToken', data.token);
-        return true;
-      }
-      return false;
-    } catch (e) {
-      return false;
-    }
-  };
+    fetchProfile();
+  }, []);
 
   const logout = () => {
+    localStorage.removeItem('token');
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, loginAs, login, register, logout }}>
-      {children}
+    <AuthContext.Provider value={{ user, loading, setUser, logout }}>
+      {!loading && children}
     </AuthContext.Provider>
   );
 }

@@ -1,48 +1,61 @@
-﻿import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { FileText, Mail, Lock, User, Building, ArrowRight, Sun, Moon } from 'lucide-react';
+import { FileText, Mail, Lock, User, Building, ArrowRight, Sun, Moon, Loader2 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
-import { useAuth } from '../../context/AuthContext';
+import { toast } from 'sonner';
+import api from '../../services/api';
 
 export default function Register() {
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
-  const { register } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     institution: '',
+    role: 'student', // default role
     password: '',
     confirmPassword: ''
   });
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // Load theme from localStorage on mount, default to light
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+      setTheme(savedTheme as 'light' | 'dark');
+    } else {
+      setTheme('light');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [setTheme]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
+      toast.error('Passwords do not match');
       return;
     }
-    setLoading(true);
+    
+    if (formData.password.length < 6) {
+      toast.error('Password should be at least 6 characters');
+      return;
+    }
+
+    setIsLoading(true);
     try {
-      const ok = await register({
+      await api.post('/users/register', {
         name: formData.name,
         email: formData.email,
-        institution: formData.institution,
         password: formData.password,
+        role: formData.role
       });
-      if (ok) {
-        navigate('/');
-      } else {
-        setError('Registration failed');
-      }
-    } catch (err) {
-      setError('Registration error');
+      
+      toast.success('Account created successfully! Please sign in.');
+      navigate('/login');
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to register');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
@@ -91,24 +104,62 @@ export default function Register() {
                   placeholder="Dr. Jane Smith"
                   className="w-full pl-11 pr-4 py-3 border border-input rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-foreground placeholder:text-muted-foreground"
                   required
+                  disabled={isLoading}
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Email Address
               </label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <input
                   type="email"
                   value={formData.email}
                   onChange={(e) => handleChange('email', e.target.value)}
                   placeholder="you@university.edu"
-                  className="w-full pl-11 pr-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  className="w-full pl-11 pr-4 py-3 border border-input rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-foreground placeholder:text-muted-foreground"
                   required
+                  disabled={isLoading}
                 />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">
+                Account Type
+              </label>
+              <div className="grid grid-cols-2 gap-4">
+                <label className={`border rounded-lg p-3 cursor-pointer transition-colors ${formData.role === 'student' ? 'border-red-500 bg-red-50 dark:bg-red-950/20' : 'border-input hover:bg-muted'}`}>
+                  <div className="flex items-center">
+                    <input
+                      type="radio"
+                      name="role"
+                      value="student"
+                      checked={formData.role === 'student'}
+                      onChange={(e) => handleChange('role', e.target.value)}
+                      className="text-red-600 focus:ring-red-500"
+                      disabled={isLoading}
+                    />
+                    <span className="ml-2 font-medium text-sm text-foreground">Student</span>
+                  </div>
+                </label>
+                <label className={`border rounded-lg p-3 cursor-pointer transition-colors ${formData.role === 'lecturer' ? 'border-red-500 bg-red-50 dark:bg-red-950/20' : 'border-input hover:bg-muted'}`}>
+                  <div className="flex items-center">
+                    <input
+                      type="radio"
+                      name="role"
+                      value="lecturer"
+                      checked={formData.role === 'lecturer'}
+                      onChange={(e) => handleChange('role', e.target.value)}
+                      className="text-red-600 focus:ring-red-500"
+                      disabled={isLoading}
+                    />
+                    <span className="ml-2 font-medium text-sm text-foreground">Lecturer</span>
+                  </div>
+                </label>
               </div>
             </div>
 
@@ -125,6 +176,7 @@ export default function Register() {
                   placeholder="University Name"
                   className="w-full pl-11 pr-4 py-3 border border-input rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-foreground placeholder:text-muted-foreground"
                   required
+                  disabled={isLoading}
                 />
               </div>
             </div>
@@ -139,9 +191,10 @@ export default function Register() {
                   type="password"
                   value={formData.password}
                   onChange={(e) => handleChange('password', e.target.value)}
-                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+                  placeholder="••••••••"
                   className="w-full pl-11 pr-4 py-3 border border-input rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-foreground placeholder:text-muted-foreground"
                   required
+                  disabled={isLoading}
                 />
               </div>
             </div>
@@ -156,15 +209,16 @@ export default function Register() {
                   type="password"
                   value={formData.confirmPassword}
                   onChange={(e) => handleChange('confirmPassword', e.target.value)}
-                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+                  placeholder="••••••••"
                   className="w-full pl-11 pr-4 py-3 border border-input rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-foreground placeholder:text-muted-foreground"
                   required
+                  disabled={isLoading}
                 />
               </div>
             </div>
 
             <div className="flex items-start">
-              <input type="checkbox" className="mt-1 rounded text-red-600 focus:ring-red-500" required />
+              <input type="checkbox" className="mt-1 rounded text-red-600 focus:ring-red-500" required disabled={isLoading} />
               <span className="ml-2 text-sm text-muted-foreground">
                 I agree to the{' '}
                 <button type="button" className="text-red-600 hover:text-red-700 font-medium">
@@ -177,17 +231,14 @@ export default function Register() {
               </span>
             </div>
 
-            <div>
-              {error && <p className="text-sm text-red-600 mb-2">{error}</p>}
-              <button
-                type="submit"
-                disabled={loading}
-                className={`w-full py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium flex items-center justify-center gap-2 ${loading ? 'opacity-60 cursor-not-allowed' : ''}`}
-              >
-                {loading ? 'Creating account...' : 'Create Account'}
-                <ArrowRight className="w-5 h-5" />
-              </button>
-            </div>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium flex items-center justify-center gap-2 disabled:opacity-70"
+            >
+              {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Create Account'}
+              {!isLoading && <ArrowRight className="w-5 h-5" />}
+            </button>
           </form>
 
           <div className="mt-6 text-center">

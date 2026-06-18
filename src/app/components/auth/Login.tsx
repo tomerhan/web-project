@@ -1,14 +1,17 @@
-﻿import React from 'react';
+import React from 'react';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { FileText, Mail, Lock, ArrowRight, User as UserIcon, GraduationCap, Sun, Moon } from 'lucide-react';
+import { FileText, Mail, Lock, ArrowRight, Sun, Moon, Loader2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import { toast } from 'sonner';
+import api from '../../services/api';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { loginAs, login } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+  const { setUser } = useAuth();
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
 
@@ -18,7 +21,6 @@ export default function Login() {
     if (savedTheme) {
       setTheme(savedTheme as 'light' | 'dark');
     } else {
-      // Default to light mode if no saved theme
       setTheme('light');
       localStorage.setItem('theme', 'light');
     }
@@ -29,30 +31,37 @@ export default function Login() {
     localStorage.setItem('theme', theme);
   }, [theme]);
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
-    setLoading(true);
-    try {
-      const ok = await login(email, password);
-      if (ok) {
-        navigate('/');
-      } else {
-        setError('Invalid credentials or server error');
-      }
-    } catch (err) {
-      setError('Login failed');
-    } finally {
-      setLoading(false);
+    if (!email || !password) {
+      toast.error('Please fill in all fields');
+      return;
     }
-  };
 
-  const handleDemoLogin = (role: 'lecturer' | 'student') => {
-    loginAs(role);
-    navigate('/');
+    setIsLoading(true);
+    try {
+      const response = await api.post('/users/login', { email, password });
+      const { token, user } = response.data;
+      
+      // Save token
+      localStorage.setItem('token', token);
+      
+      // Update Context
+      setUser(user);
+      
+      toast.success('Logged in successfully!');
+      
+      // Redirect based on role
+      if (user.role === 'lecturer') {
+        navigate('/lecturer');
+      } else {
+        navigate('/');
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Login failed. Please check your credentials.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -67,7 +76,7 @@ export default function Login() {
       </button>
       
       <div className="w-full max-w-md">
-{/* Logo and Header Block */}
+        {/* Logo and Header Block */}
         <div className="bg-background rounded-t-2xl border-t border-x border-border p-8 pb-0 text-center">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-red-600 rounded-2xl mb-4 shadow-md shadow-red-900/20">
             <FileText className="w-8 h-8 text-white" />
@@ -91,9 +100,10 @@ export default function Login() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="example@university.edu"
+                  placeholder="you@university.edu"
                   className="w-full pl-11 pr-4 py-3 border border-input rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-foreground placeholder:text-muted-foreground"
                   required
+                  disabled={isLoading}
                 />
               </div>
             </div>
@@ -108,34 +118,22 @@ export default function Login() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
+                  placeholder="••••••••"
                   className="w-full pl-11 pr-4 py-3 border border-input rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-foreground placeholder:text-muted-foreground"
                   required
+                  disabled={isLoading}
                 />
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
-              <label className="flex items-center">
-                <input type="checkbox" className="rounded text-red-600 focus:ring-red-500" />
-                <span className="ml-2 text-sm text-muted-foreground">Remember me</span>
-              </label>
-              <button type="button" className="text-sm text-red-600 hover:text-red-700 font-medium">
-                Forgot password?
-              </button>
-            </div>
-
-            <div>
-              {error && <p className="text-sm text-red-600 mb-2">{error}</p>}
-              <button
-                type="submit"
-                disabled={loading}
-                className={`w-full py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium flex items-center justify-center gap-2 ${loading ? 'opacity-60 cursor-not-allowed' : ''}`}
-              >
-                {loading ? 'Signing in...' : 'Sign In'}
-                <ArrowRight className="w-5 h-5" />
-              </button>
-            </div>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium flex items-center justify-center gap-2 disabled:opacity-70"
+            >
+              {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Sign In'}
+              {!isLoading && <ArrowRight className="w-5 h-5" />}
+            </button>
           </form>
 
           <div className="mt-6 text-center">
@@ -148,29 +146,6 @@ export default function Login() {
                 Create Account
               </button>
             </p>
-                      </div>
-        </div>
-
-        {/* Demo Credentials */}
-        <div className="mt-6 bg-card rounded-lg p-4 border border-border">
-          <p className="text-sm font-medium text-foreground text-center mb-3">
-            Quick Demo Login
-          </p>
-          <div className="grid grid-cols-2 gap-3">
-            <button
-                onClick={() => handleDemoLogin('student')}
-                className="flex items-center justify-center gap-2 py-2 px-3 bg-muted border border-border rounded-lg hover:bg-card hover:border-red-500 hover:shadow-md hover:scale-105 transition-all text-sm font-medium text-foreground"
-              >
-                <UserIcon className="w-4 h-4 text-foreground" />
-                Student
-              </button>
-            <button 
-              onClick={() => handleDemoLogin('lecturer')}
-              className="flex items-center justify-center gap-2 py-2 px-3 bg-muted border border-border rounded-lg hover:bg-card hover:border-red-500 hover:shadow-md hover:scale-105 transition-all text-sm font-medium text-foreground"
-            >
-              <GraduationCap className="w-4 h-4 text-slate-500" />
-              Lecturer
-            </button>
           </div>
         </div>
       </div>
