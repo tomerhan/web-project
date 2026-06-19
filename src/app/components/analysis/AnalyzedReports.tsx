@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import {
   BarChart, FileText, Calendar, GitCompare, Trash2, Search,
   ChevronDown, ChevronUp, Eye, Download
@@ -42,33 +42,8 @@ export default function AnalyzedReports() {
   const [compareArticles, setCompareArticles] = useState<Article[]>([]);
   const [singlePDFView, setSinglePDFView] = useState<Article | null>(null);
   
-  // Reports - keep mock seed but allow syncing with uploaded articles
-  const [reports, setReports] = useState<AnalysisReport[]>([
-    {
-      id: 'r1',
-      name: 'AI & NLP Research Analysis',
-      articleIds: [mockArticles[0].id, mockArticles[1].id, mockArticles[3].id],
-      createdAt: '2024-01-15',
-      analysisDate: '2024-01-15',
-      depth: 'Deep'
-    },
-    {
-      id: 'r2',
-      name: 'Climate & Energy Comparison',
-      articleIds: [mockArticles[2].id, mockArticles[4].id],
-      createdAt: '2024-01-10',
-      analysisDate: '2024-01-10',
-      depth: 'Regular'
-    },
-    {
-      id: 'r3',
-      name: 'Transformer Architecture Review',
-      articleIds: [mockArticles[0].id],
-      createdAt: '2024-01-05',
-      analysisDate: '2024-01-05',
-      depth: 'Fast'
-    }
-  ]);
+  // Reports - start empty since mock data is deleted
+  const [reports, setReports] = useState<AnalysisReport[]>([]);
 
   // Reports matching the current search text (case-insensitive name match).
   const filteredReports = reports.filter((report) =>

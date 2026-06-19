@@ -1,4 +1,4 @@
-﻿// Import React hooks for state management and optimization
+// Import React hooks for state management and optimization
 import { useState, useRef, useMemo, useEffect } from 'react';
 // Import icons from lucide-react for UI elements
 import {
@@ -23,7 +23,7 @@ import GuidingQuestionsBlock from './GuidingQuestionsBlock';
 import StudentPerformancePanel from '../dashboard/StudentPerformancePanel';
 // Import toast notification library
 import { toast } from 'sonner';
-import { getShortSummary } from '../../../utils/textUtils';
+import { getShortSummary, extractTextFromPDF } from '../../../utils/textUtils';
 import ArticleIcon from '../ui/ArticleIcon';
 import { CHAT_LABEL } from '../../config/nav';
 
@@ -328,15 +328,53 @@ export default function ChatInterface() {
     }, 80);
 
     try {
+      let extracted = { text: '', abstract: '' };
+      try {
+        extracted = await extractTextFromPDF(files[0]);
+      } catch (err) {
+        console.error('Failed to parse PDF text:', err);
+        toast.error('Could not extract PDF text, using file name instead.');
+        extracted = {
+          text: `This is the text content of the paper "${files[0].name}". Let's discuss its methodology, findings, and results.`,
+          abstract: `Uploaded PDF document: ${files[0].name}`
+        };
+      }
+
+      let abstract = extracted.abstract || `Uploaded PDF document: ${files[0].name}`;
+      if (abstract.length > 500) {
+        abstract = abstract.substring(0, 500) + '...';
+      }
+
+      // Try to parse year from first page text
+      let year = new Date().getFullYear();
+      const yearMatch = extracted.text.substring(0, 2000).match(/\b(20\d{2})\b/);
+      if (yearMatch) {
+        const y = parseInt(yearMatch[1]);
+        if (y >= 1990 && y <= new Date().getFullYear()) {
+          year = y;
+        }
+      }
+
+      // Build topics from standard keywords
+      const topics: string[] = [];
+      const keywords = ['attention', 'learning', 'transformer', 'network', 'quantum', 'cryptography', 'climate', 'energy', 'carbon', 'security', 'model', 'data'];
+      const textLower = extracted.text.toLowerCase();
+      keywords.forEach(kw => {
+        if (textLower.includes(kw) && topics.length < 4) {
+          topics.push(kw.charAt(0).toUpperCase() + kw.slice(1));
+        }
+      });
+      if (topics.length === 0) topics.push('Research');
+
       const paperPayload = {
         title: files[0].name.replace('.pdf', ''),
-        abstract: `Uploaded PDF document: ${files[0].name}`,
-        content: `This is the text content of the paper "${files[0].name}". Let's discuss its methodology, findings, and results.`,
+        abstract: abstract,
+        content: extracted.text,
         authors: ['Uploaded User'],
-        year: new Date().getFullYear(),
-        topics: ['Uploaded'],
-        methodology: 'Unknown',
-        keyFindings: ['Document uploaded successfully'],
+        year: year,
+        topics: topics,
+        methodology: 'Determined from document text',
+        keyFindings: ['Discuss methodology and findings with Socratic Assistant'],
       };
 
       const na = await uploadPaper(paperPayload);
@@ -347,7 +385,7 @@ export default function ChatInterface() {
       setUploadedFiles((prev) => [na, ...prev]);
       setAnalyzedArticles((prev) => new Set([...prev, na.id]));
       setSelectedArticles((prev) => new Set([...prev, na.id]));
-      toast.success(`"${files[0].name}" added to library`);
+      toast.success(`"${files[0].name}" added to library with extracted text`);
     } catch (err) {
       clearInterval(interval);
       console.error('Failed to upload paper:', err);
@@ -774,6 +812,8 @@ export default function ChatInterface() {
           {/* â•â•â• Guided Questions â€” primary tool to sharpen understanding â•â•â• */}
           {!isLecturerView && (
             <GuidingQuestionsBlock
+              articles={uploadedFiles}
+              selectedArticleIds={selectedArticles}
               disabled={!canChat}
               disabledReason="Analyze a selected PDF first to unlock guided questions"
             />

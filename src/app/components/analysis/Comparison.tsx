@@ -1,6 +1,7 @@
-﻿import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { GitCompare, Download, Plus, X, Check } from 'lucide-react';
-import { mockArticles, Article } from '../../data/mockData';
+import { Article } from '../../data/mockData';
+import { getPapers } from '../../services/paperService';
 
 /*
  * Comparison (full page)
@@ -16,9 +17,28 @@ interface ComparisonProps {
 }
 
 export default function Comparison({ onNavigate }: ComparisonProps) {
-  // Pre-seed with two articles; selector panel is hidden until toggled.
-  const [selectedArticles, setSelectedArticles] = useState<Article[]>([mockArticles[0], mockArticles[3]]);
+  const [selectedArticles, setSelectedArticles] = useState<Article[]>([]);
   const [showSelector, setShowSelector] = useState(false);
+  const [allArticles, setAllArticles] = useState<Article[]>([]);
+
+  useEffect(() => {
+    const loadPapers = async () => {
+      try {
+        const papers = await getPapers();
+        setAllArticles(papers);
+      } catch (err) {
+        console.error('Failed to load papers in Comparison:', err);
+      }
+    };
+    loadPapers();
+  }, []);
+
+  // Pre-seed selection when papers load if there are at least two papers
+  useEffect(() => {
+    if (allArticles.length >= 2 && selectedArticles.length === 0) {
+      setSelectedArticles([allArticles[0], allArticles[1]]);
+    }
+  }, [allArticles]);
 
   // Add/remove an article from the selection. Hard cap of 4 columns.
   const toggleArticleSelection = (article: Article) => {
@@ -120,7 +140,7 @@ export default function Comparison({ onNavigate }: ComparisonProps) {
               </button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {mockArticles.map(article => {
+              {allArticles.map(article => {
                 const isSelected = selectedArticles.find(a => a.id === article.id);
                 const canSelect = selectedArticles.length < 4 || isSelected;
 

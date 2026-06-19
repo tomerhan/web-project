@@ -1,7 +1,8 @@
-﻿import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Send, Sparkles, FileText, MessageSquare, MoreVertical, BookmarkPlus, Check, Edit, X } from 'lucide-react';
-import { ChatMessage, mockArticles, mockChatHistory } from '../../data/mockData';
-import { loadUploadedArticles } from '../../../utils/articleStore';
+import { ChatMessage, Article } from '../../data/mockData';
+import { getPapers } from '../../services/paperService';
+import { startOrResumeChat, sendChatMessage, mapMessagesToFrontend } from '../../services/chatService';
 import { toast } from 'sonner';
 
 /*
@@ -25,43 +26,25 @@ interface ArticleGroup {
 }
 
 export default function ChatAnalyzer() {
-  // Chat transcript, lazily restored from localStorage on first render.
-  const [messages, setMessages] = useState<ChatMessage[]>(() => {
-    try {
-      const raw = localStorage.getItem('chat_analyzer_messages_v1');
-      if (raw) return JSON.parse(raw) as ChatMessage[];
-    } catch (e) { /* ignore */ }
-    return [];
-  });
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const chatRef = useRef<HTMLDivElement>(null);
 
-  // Article groups â€” restored from original chat container
-  const [groups, setGroups] = useState<ArticleGroup[]>(() => {
-    try {
-      const raw = localStorage.getItem('analysis_groups_v1');
-      if (raw) return JSON.parse(raw) as ArticleGroup[];
-    } catch (e) { /* ignore */ }
-    return [
-      { id: 'g1', name: 'AI & NLP Research', articleIds: mockArticles.slice(0, 3).map(a => a.id) },
-      { id: 'g2', name: 'Climate & Energy', articleIds: mockArticles.slice(3, 5).map(a => a.id) },
-    ];
-  });
+  // Article groups
+  const [groups, setGroups] = useState<ArticleGroup[]>([]);
   const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
   const [showStatsMenu, setShowStatsMenu] = useState(false);
   const [isCreatingGroup, setIsCreatingGroup] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
   const [groupArticleSelection, setGroupArticleSelection] = useState<Set<string>>(new Set());
 
+  // Backend chat session state
+  const [chatId, setChatId] = useState<string | null>(null);
+  const [activeArticleId, setActiveArticleId] = useState<string | null>(null);
+
   const activeGroup = groups.find(g => g.id === activeGroupId);   // currently selected group (if any)
-  // All articles available to chat about: uploads merged with mock seed.
-  const allArticles = useMemo(() => {
-    try {
-      const stored = loadUploadedArticles();
-      return [...stored, ...mockArticles.filter(m => !stored.find(s => s.id === m.id))];
-    } catch (e) { return mockArticles; }
-  }, []);
+  const [allArticles, setAllArticles] = useState<Article[]>([]);
 
   // Resolve the active group's ids into full Article objects (for the chips).
   const activeGroupArticles = activeGroup
@@ -135,41 +118,111 @@ export default function ChatAnalyzer() {
           setGroups((p) => [g, ...p]);
           setActiveGroupId(gid);
           setIsResumedMode(true);
+          setChatCreated(true);
           toast.success('Resumed session loaded');
         }
       }
     } catch (e) { /* ignore */ }
-    try { localStorage.removeItem('resumed_session_id'); localStorage.removeItem('resumed_session_article_ids'); } catch {}
+    try { localStorage.removeItem('resumed_session_id'); localStorage.removeItem('resumed_session_article_ids'); } catch { }
   }, []);
 
   // Editable group title state
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [editingGroupName, setEditingGroupName] = useState('');
   const [isResumedMode, setIsResumedMode] = useState(false);
-  const [analysisDepth, setAnalysisDepth] = useState<1|2|3>(2);
+  const [analysisDepth, setAnalysisDepth] = useState<1 | 2 | 3>(2);
   const [chatCreated, setChatCreated] = useState(false);
+
+  // Fetch papers from database on mount and setup initial groups
+  useEffect(() => {
+    const loadAllPapers = async () => {
+      try {
+        const data = await getPapers();
+        setAllArticles(data);
+
+        // If groups are empty or we want to initialize default groups from DB
+        const raw = localStorage.getItem('analysis_groups_v1');
+        if (!raw) {
+          if (data.length >= 5) {
+            setGroups([
+              { id: 'g1', name: 'AI & NLP Research', articleIds: [data[0].id, data[1].id, data[3].id] },
+              { id: 'g2', name: 'Climate & Energy', articleIds: [data[2].id, data[4].id] },
+            ]);
+            setActiveGroupId('g1');
+          } else if (data.length > 0) {
+            setGroups([
+              { id: 'g1', name: 'My Research', articleIds: data.map(p => p.id) }
+            ]);
+            setActiveGroupId('g1');
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load papers in ChatAnalyzer:', error);
+      }
+    };
+    loadAllPapers();
+  }, []);
+
+  // Update activeArticleId when activeGroupId or activeGroupArticles changes
+  useEffect(() => {
+    if (activeGroupArticles.length > 0) {
+      if (!activeArticleId || !activeGroupArticles.find(a => a.id === activeArticleId)) {
+        setActiveArticleId(activeGroupArticles[0].id);
+      }
+    } else {
+      setActiveArticleId(null);
+    }
+  }, [activeGroupId, activeGroupArticles]);
+
+  // Load or resume chat on active article change, only if chat is created
+  useEffect(() => {
+    if (!chatCreated || !activeArticleId) {
+      setChatId(null);
+      setMessages([]);
+      return;
+    }
+
+    const initChat = async () => {
+      try {
+        setIsTyping(true);
+        const session = await startOrResumeChat(activeArticleId);
+        setChatId(session._id);
+        setMessages(mapMessagesToFrontend(session.messages, activeArticleId));
+      } catch (err) {
+        console.error('Failed to init chat session:', err);
+        toast.error('Failed to initialize Socratic chat session');
+      } finally {
+        setIsTyping(false);
+        setTimeout(() => {
+          chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight, behavior: 'smooth' });
+        }, 100);
+      }
+    };
+
+    initChat();
+  }, [activeArticleId, chatCreated]);
 
   // Persist groups so renamed groups survive reload
   useEffect(() => {
-    try { localStorage.setItem('analysis_groups_v1', JSON.stringify(groups)); } catch (e) { /* ignore */ }
+    if (groups.length > 0) {
+      try { localStorage.setItem('analysis_groups_v1', JSON.stringify(groups)); } catch (e) { /* ignore */ }
+    }
   }, [groups]);
 
-  // Always show full answers in chat (no show more/less)
-
-  // Send a question: push the user message immediately, show the typing dots,
-  // then after 1.5s patch in a canned AI answer + fake sources. Scrolls to
-  // bottom after both the question and the answer land.
-  const send = () => {
+  // Send a question: calls backend API and updates the state with Socratic bot response
+  const send = async () => {
     const text = inputMessage.trim();
-    if (!text) return;
-    const articleId = mockArticles[0]?.id ?? '1';
+    if (!text || !chatId || !activeArticleId) return;
+
+    const tempUserMsgId = `temp-${Date.now()}`;
     const newMsg: ChatMessage = {
-      id: `c${Date.now()}`,
-      articleId,
+      id: tempUserMsgId,
+      articleId: activeArticleId,
       question: text,
       answer: '',
       timestamp: new Date().toISOString(),
     };
+
     setMessages((p) => [...p, newMsg]);
     setInputMessage('');
     setIsTyping(true);
@@ -177,14 +230,20 @@ export default function ChatAnalyzer() {
       chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight, behavior: 'smooth' });
     }, 50);
 
-    setTimeout(() => {
-      const reply = 'Based on the analyzed material, the methodology relies on cross-validation across multiple datasets while the results emphasize statistical significance over raw effect size.';
-      setMessages((p) => p.map((m) => (m.id === newMsg.id ? { ...m, answer: reply, sources: ['Methodology', 'Results'] } : m)));
+    try {
+      const updatedSession = await sendChatMessage(chatId, text);
+      const mapped = mapMessagesToFrontend(updatedSession.messages, activeArticleId);
+      setMessages(mapped);
+    } catch (err) {
+      console.error('Failed to send message:', err);
+      toast.error('Failed to get response from Socratic bot');
+      setMessages((p) => p.filter(m => m.id !== tempUserMsgId));
+    } finally {
       setIsTyping(false);
       setTimeout(() => {
         chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight, behavior: 'smooth' });
       }, 50);
-    }, 1500);
+    }
   };
 
   // Persist messages to localStorage so other views (History) can read them
@@ -204,6 +263,7 @@ export default function ChatAnalyzer() {
       setActiveGroupId(gid);
       setIsResumedMode(true);
       if (detail.messages) setMessages(detail.messages as any);
+      setChatCreated(true); // Enable chat view immediately on comparison import
       toast.success('Chat created from comparison');
     };
     window.addEventListener('create-chat-from-comparison', handler as EventListener);
@@ -240,7 +300,7 @@ export default function ChatAnalyzer() {
                 min={1}
                 max={3}
                 value={analysisDepth}
-                onChange={(e) => setAnalysisDepth(Number(e.target.value) as 1|2|3)}
+                onChange={(e) => setAnalysisDepth(Number(e.target.value) as 1 | 2 | 3)}
                 className="w-full"
               />
               <div className="text-xs text-muted-foreground flex justify-between mt-1">
@@ -271,11 +331,10 @@ export default function ChatAnalyzer() {
 
       <div className="flex-1 flex overflow-hidden bg-muted min-h-0">
         {/* Left bar â€” comprehension % with 100% celebration */}
-        <aside className={`w-16 shrink-0 flex flex-col items-center gap-3 py-6 border-r border-border relative overflow-hidden transition-colors duration-500 ${
-          comprehensionPercent === 100
+        <aside className={`w-16 shrink-0 flex flex-col items-center gap-3 py-6 border-r border-border relative overflow-hidden transition-colors duration-500 ${comprehensionPercent === 100
             ? 'bg-gradient-to-b from-red-50 via-card to-card dark:from-red-950/40 dark:via-card dark:to-card'
             : 'bg-card'
-        }`}>
+          }`}>
           {comprehensionPercent === 100 && (
             <>
               <span className="absolute top-1 left-1/2 -translate-x-1/2 text-base animate-bounce" aria-hidden>ðŸ†</span>
@@ -287,23 +346,19 @@ export default function ChatAnalyzer() {
               <span className="pointer-events-none absolute bottom-20 left-2 w-1 h-1 rounded-full bg-red-500 animate-ping [animation-delay:1.2s]" aria-hidden />
             </>
           )}
-          <span className={`text-[10px] font-bold uppercase tracking-wide relative ${
-            comprehensionPercent === 100 ? 'text-red-600 dark:text-red-300 mt-5' : 'text-muted-foreground'
-          }`}>Comprehension</span>
-          <span className={`text-sm font-bold tabular-nums relative ${
-            comprehensionPercent === 100 ? 'text-red-600 dark:text-red-300 text-base' : 'text-foreground'
-          }`}>{comprehensionPercent}%</span>
-          <div className={`relative w-3 flex-1 rounded-full overflow-hidden border ${
-            comprehensionPercent === 100
+          <span className={`text-[10px] font-bold uppercase tracking-wide relative ${comprehensionPercent === 100 ? 'text-red-600 dark:text-red-300 mt-5' : 'text-muted-foreground'
+            }`}>Comprehension</span>
+          <span className={`text-sm font-bold tabular-nums relative ${comprehensionPercent === 100 ? 'text-red-600 dark:text-red-300 text-base' : 'text-foreground'
+            }`}>{comprehensionPercent}%</span>
+          <div className={`relative w-3 flex-1 rounded-full overflow-hidden border ${comprehensionPercent === 100
               ? 'bg-red-100 dark:bg-red-950/60 border-red-300 dark:border-red-700 shadow-[0_0_12px_rgba(220,38,38,0.6)]'
               : 'bg-slate-200 dark:bg-slate-800 border-border'
-          }`}>
+            }`}>
             <div
-              className={`absolute bottom-0 left-0 right-0 transition-all duration-500 ease-out ${
-                comprehensionPercent === 100
+              className={`absolute bottom-0 left-0 right-0 transition-all duration-500 ease-out ${comprehensionPercent === 100
                   ? 'bg-gradient-to-t from-red-700 via-red-500 to-red-300 animate-pulse'
                   : 'bg-gradient-to-t from-red-600 to-red-400 dark:from-red-500 dark:to-red-300'
-              }`}
+                }`}
               style={{ height: `${comprehensionPercent}%` }}
               role="progressbar"
               aria-valuenow={comprehensionPercent}
@@ -311,86 +366,83 @@ export default function ChatAnalyzer() {
               aria-valuemax={100}
             />
           </div>
-          <span className={`text-[10px] relative ${
-            comprehensionPercent === 100 ? 'text-red-600 dark:text-red-300 font-bold' : 'text-muted-foreground'
-          }`}>{comprehensionPercent === 100 ? 'MAX!' : '0%'}</span>
+          <span className={`text-[10px] relative ${comprehensionPercent === 100 ? 'text-red-600 dark:text-red-300 font-bold' : 'text-muted-foreground'
+            }`}>{comprehensionPercent === 100 ? 'MAX!' : '0%'}</span>
         </aside>
 
         {/* Chat section â€” moved from main screen */}
         <div className="flex-1 overflow-y-auto p-4 md:p-6 min-w-0">
           <section className="bg-card rounded-2xl shadow-sm border border-border flex flex-col h-[500px] overflow-hidden">
             <div className="bg-card px-5 py-4 border-b border-border flex items-center justify-between flex-shrink-0 gap-4 w-full min-w-0">
-                <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-2 shrink-0">
                 <Sparkles className="w-5 h-5 text-slate-600" />
                 <span className="font-bold text-foreground">Chat Analyzer</span>
               </div>
 
               {/* Group tabs */}
               <div className="w-0 flex-1 overflow-x-auto overflow-y-hidden py-1 flex items-center gap-1.5 min-w-0 whitespace-nowrap">
-                    {isResumedMode && activeGroup ? (
-                      <div className="flex-none px-3 py-1.5 text-xs font-bold rounded-lg transition-all border whitespace-nowrap bg-blue-600 text-white border-blue-600 shadow-md">
-                        {activeGroup.name}
-                      </div>
-                    ) : (
-                      groups.map((g) => (
-                        <button
-                          key={g.id}
-                          onClick={() => setActiveGroupId(activeGroupId === g.id ? null : g.id)}
-                          className={`flex-none px-3 py-1.5 text-xs font-bold rounded-lg transition-all border whitespace-nowrap ${
-                            activeGroupId === g.id
-                              ? 'bg-blue-600 text-white border-blue-600 shadow-md'
-                              : 'bg-card text-foreground border-border hover:bg-muted'
-                          }`}
-                        >
-                          {g.name}
-                        </button>
-                      ))
-                    )}
+                {isResumedMode && activeGroup ? (
+                  <div className="flex-none px-3 py-1.5 text-xs font-bold rounded-lg transition-all border whitespace-nowrap bg-blue-600 text-white border-blue-600 shadow-md">
+                    {activeGroup.name}
                   </div>
+                ) : (
+                  groups.map((g) => (
+                    <button
+                      key={g.id}
+                      onClick={() => setActiveGroupId(activeGroupId === g.id ? null : g.id)}
+                      className={`flex-none px-3 py-1.5 text-xs font-bold rounded-lg transition-all border whitespace-nowrap ${activeGroupId === g.id
+                          ? 'bg-blue-600 text-white border-blue-600 shadow-md'
+                          : 'bg-card text-foreground border-border hover:bg-muted'
+                        }`}
+                    >
+                      {g.name}
+                    </button>
+                  ))
+                )}
+              </div>
 
               {/* 3-dot menu â€” attach a group of articles to discuss */}
               {!isResumedMode && (
-              <div className="relative shrink-0">
-                <button
-                  onClick={() => setShowStatsMenu((v) => !v)}
-                  className="p-1.5 hover:bg-blue-600 hover:text-white hover:border-blue-600 rounded-lg text-foreground transition-all border border-border shadow-sm"
-                  aria-label="Manage article groups"
-                >
-                  <MoreVertical className="w-4 h-4" />
-                </button>
-                {showStatsMenu && (
-                  <div className="absolute right-0 top-full mt-2 min-w-[18rem] z-50 bg-background border border-border rounded-xl shadow-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-sm font-semibold text-foreground">Article Groups</h3>
-                      <span className="text-xs text-muted-foreground">{groups.length} groups</span>
+                <div className="relative shrink-0">
+                  <button
+                    onClick={() => setShowStatsMenu((v) => !v)}
+                    className="p-1.5 hover:bg-blue-600 hover:text-white hover:border-blue-600 rounded-lg text-foreground transition-all border border-border shadow-sm"
+                    aria-label="Manage article groups"
+                  >
+                    <MoreVertical className="w-4 h-4" />
+                  </button>
+                  {showStatsMenu && (
+                    <div className="absolute right-0 top-full mt-2 min-w-[18rem] z-50 bg-background border border-border rounded-xl shadow-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-sm font-semibold text-foreground">Article Groups</h3>
+                        <span className="text-xs text-muted-foreground">{groups.length} groups</span>
+                      </div>
+                      <button
+                        onClick={() => { setIsCreatingGroup(true); setShowStatsMenu(false); }}
+                        className="w-full text-left px-3 py-2.5 text-sm bg-muted/50 hover:bg-muted rounded-lg flex items-center gap-2 transition-colors text-foreground border border-border mb-2"
+                      >
+                        <BookmarkPlus className="w-4 h-4 text-red-600" />
+                        <span>Create New Group</span>
+                      </button>
+                      <div className="space-y-1 max-h-48 overflow-y-auto">
+                        {groups.map((g) => (
+                          <button
+                            key={g.id}
+                            onClick={() => { setActiveGroupId(g.id); setShowStatsMenu(false); }}
+                            className={`w-full text-left flex items-center justify-between p-2 rounded-lg transition-colors ${activeGroupId === g.id ? 'bg-blue-50 dark:bg-blue-950/40' : 'hover:bg-muted'
+                              }`}
+                          >
+                            <div>
+                              <div className="text-sm font-medium text-foreground">{g.name}</div>
+                              <div className="text-xs text-muted-foreground">{g.articleIds.length} articles</div>
+                            </div>
+                            {activeGroupId === g.id && <Check className="w-4 h-4 text-blue-600" />}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    <button
-                      onClick={() => { setIsCreatingGroup(true); setShowStatsMenu(false); }}
-                      className="w-full text-left px-3 py-2.5 text-sm bg-muted/50 hover:bg-muted rounded-lg flex items-center gap-2 transition-colors text-foreground border border-border mb-2"
-                    >
-                      <BookmarkPlus className="w-4 h-4 text-red-600" />
-                      <span>Create New Group</span>
-                    </button>
-                    <div className="space-y-1 max-h-48 overflow-y-auto">
-                      {groups.map((g) => (
-                        <button
-                          key={g.id}
-                          onClick={() => { setActiveGroupId(g.id); setShowStatsMenu(false); }}
-                          className={`w-full text-left flex items-center justify-between p-2 rounded-lg transition-colors ${
-                            activeGroupId === g.id ? 'bg-blue-50 dark:bg-blue-950/40' : 'hover:bg-muted'
-                          }`}
-                        >
-                          <div>
-                            <div className="text-sm font-medium text-foreground">{g.name}</div>
-                            <div className="text-xs text-muted-foreground">{g.articleIds.length} articles</div>
-                          </div>
-                          {activeGroupId === g.id && <Check className="w-4 h-4 text-blue-600" />}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
               )}
             </div>
 
@@ -409,19 +461,29 @@ export default function ChatAnalyzer() {
                       }} className="p-1 text-green-600"><Check className="w-4 h-4" /></button>
                       <button onClick={() => { setEditingGroupId(null); setEditingGroupName(''); }} className="p-1 text-muted-foreground"><X className="w-4 h-4" /></button>
                     </div>
-                      ) : (
+                  ) : (
                     <div className="flex items-center gap-2">
                       <h3 className="font-bold text-blue-700 dark:text-blue-300">{activeGroup.name}</h3>
                       <button onClick={() => { setEditingGroupId(activeGroup.id); setEditingGroupName(activeGroup.name); }} className="p-1 text-muted-foreground" title="Edit group name"><Edit className="w-4 h-4" /></button>
                     </div>
                   )}
                 </div>
-                {activeGroupArticles.map((a) => (
-                  <span key={a.id} className="text-[10px] font-medium text-foreground bg-card border border-border rounded-full px-2 py-0.5 flex items-center gap-1">
-                    <FileText className="w-2.5 h-2.5 text-blue-600" />
-                    {a.title.substring(0, 40)}{a.title.length > 40 ? 'â€¦' : ''}
-                  </span>
-                ))}
+                {activeGroupArticles.map((a) => {
+                  const isActive = a.id === activeArticleId;
+                  return (
+                    <button
+                      key={a.id}
+                      onClick={() => setActiveArticleId(a.id)}
+                      className={`text-[10px] font-medium rounded-full px-2.5 py-1 flex items-center gap-1.5 transition-all cursor-pointer border ${isActive
+                          ? 'bg-blue-600 text-white border-blue-600 shadow-sm font-bold scale-105'
+                          : 'bg-card text-foreground border-border hover:bg-muted'
+                        }`}
+                    >
+                      <FileText className={`w-3 h-3 ${isActive ? 'text-white' : 'text-blue-600'}`} />
+                      {a.title.substring(0, 40)}{a.title.length > 40 ? '…' : ''}
+                    </button>
+                  );
+                })}
                 <span className="text-[10px] text-muted-foreground ml-auto">{messages.length} message{messages.length === 1 ? '' : 's'}</span>
               </div>
             )}
@@ -446,7 +508,7 @@ export default function ChatAnalyzer() {
                   />
                   <p className="text-[10px] font-semibold text-muted-foreground mb-2 uppercase tracking-wide">Select Articles</p>
                   <div className="space-y-2 max-h-48 overflow-y-auto mb-4">
-                    {mockArticles.map((a) => {
+                    {allArticles.map((a) => {
                       const sel = groupArticleSelection.has(a.id);
                       return (
                         <button

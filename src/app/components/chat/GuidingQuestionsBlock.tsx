@@ -1,6 +1,8 @@
-﻿import { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Lightbulb, Plus, Trash2, FileText, BookOpen, Sparkles } from 'lucide-react';
-import { Article, mockArticles } from '../../data/mockData';
+import { Article } from '../../data/mockData';
+import { toast } from 'sonner';
+import { queryPaper } from '../../services/paperService';
 
 interface QuestionEntry {
   id: string;
@@ -12,6 +14,8 @@ interface QuestionEntry {
 }
 
 interface Props {
+  articles: Article[];
+  selectedArticleIds?: Set<string>;
   disabled?: boolean;
   disabledReason?: string;
 }
@@ -27,9 +31,9 @@ function detectArticles(text: string, articles: Article[]): Article[] {
   });
 }
 
-export default function GuidingQuestionsBlock({ disabled, disabledReason }: Props) {
+export default function GuidingQuestionsBlock({ articles, selectedArticleIds, disabled, disabledReason }: Props) {
   const [questions, setQuestions] = useState<QuestionEntry[]>([]);
-  const articleLibrary = useMemo(() => mockArticles, []);
+  const articleLibrary = useMemo(() => articles, [articles]);
   const hasAtLeastOne = questions.some((q) => q.text.trim().length > 0);
 
   const addQuestion = () => {
@@ -56,21 +60,36 @@ export default function GuidingQuestionsBlock({ disabled, disabledReason }: Prop
     setQuestions((prev) => prev.filter((q) => q.id !== id));
   };
 
-  const answerQuestion = (id: string) => {
+  const answerQuestion = async (id: string) => {
     const q = questions.find((x) => x.id === id);
     if (!q || !q.text.trim()) return;
+
+    let targetArticleId: string | null = null;
+    if (q.mentioned.length > 0) {
+      targetArticleId = q.mentioned[0].id;
+    } else if (selectedArticleIds && selectedArticleIds.size > 0) {
+      targetArticleId = Array.from(selectedArticleIds)[0];
+    } else if (articles.length > 0) {
+      targetArticleId = articles[0].id;
+    }
+
+    if (!targetArticleId) {
+      toast.error('Please select or mention an article first.');
+      return;
+    }
+
     setQuestions((prev) => prev.map((x) => (x.id === id ? { ...x, loading: true } : x)));
-    setTimeout(() => {
-      const ctx = q.mentioned.length > 0
-        ? `Drawing on ${q.mentioned.map((a) => `"${a.title}"`).join(', ')}, `
-        : '';
-      const guideHint = q.guide.trim()
-        ? ` Considering your note ("${q.guide.trim().slice(0, 80)}${q.guide.trim().length > 80 ? 'â€¦' : ''}"),`
-        : '';
-      const answer = `${ctx}here is a guided answer to "${q.text.trim()}":${guideHint} the strongest interpretation focuses on the methodology and how its assumptions shape the reported results. Look for evidence in the discussion section that the authors anticipated this objection, and contrast their reasoning with at least one prior work. If the answer feels incomplete, sharpen the question by narrowing scope to a single dataset or metric.`;
+
+    try {
+      const answer = await queryPaper(targetArticleId, q.text, q.guide);
       setQuestions((prev) => prev.map((x) => (x.id === id ? { ...x, loading: false, answer } : x)));
-    }, 700);
+    } catch (error) {
+      console.error('Failed to get guiding answer:', error);
+      toast.error('Failed to get answer from AI tutor.');
+      setQuestions((prev) => prev.map((x) => (x.id === id ? { ...x, loading: false } : x)));
+    }
   };
+
 
   return (
     <section className="bg-card rounded-2xl shadow-sm border border-border p-5 space-y-5">

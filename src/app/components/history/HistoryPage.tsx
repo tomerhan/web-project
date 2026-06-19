@@ -1,22 +1,24 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   History, GitCompare, MessageSquare, BookOpen,
   Trash2, Search, Calendar, BarChart3, FileText, Edit, X, Check
 } from 'lucide-react';
-import { mockAnalysisSessions, mockArticles, mockChatHistory, ChatMessage, AnalysisSession } from '../../data/mockData';
+import { mockAnalysisSessions, mockArticles, ChatMessage, AnalysisSession, Article } from '../../data/mockData';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
+import { getPapers } from '../../services/paperService';
+import { getUserChats, deleteChat } from '../../services/chatService';
 
 const TYPE_ICONS: Record<AnalysisSession['type'], typeof GitCompare> = {
   comparison: GitCompare,
-  chat:        MessageSquare,
-  summary:     BarChart3,
+  chat: MessageSquare,
+  summary: BarChart3,
 };
 
 const TYPE_COLORS: Record<AnalysisSession['type'], string> = {
   comparison: 'bg-purple-100 text-purple-700 border-purple-200',
-  chat:        'bg-blue-100 text-blue-700 border-blue-200',
-  summary:     'bg-emerald-100 text-emerald-700 border-emerald-200',
+  chat: 'bg-blue-100 text-blue-700 border-blue-200',
+  summary: 'bg-emerald-100 text-emerald-700 border-emerald-200',
 };
 
 export default function HistoryPage() {
@@ -31,6 +33,7 @@ export default function HistoryPage() {
   });
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
+  const [allArticles, setAllArticles] = useState<Article[]>(mockArticles);
 
   const [chatMessages] = useState<ChatMessage[]>(() => {
     try {
@@ -40,14 +43,43 @@ export default function HistoryPage() {
     return [];
   });
 
+  // Fetch real papers & Socratic chats from the database on mount
+  useEffect(() => {
+    const loadHistoryAndPapers = async () => {
+      try {
+        const papers = await getPapers();
+        setAllArticles(papers);
+
+        const dbChats = await getUserChats();
+        const mappedDbChats: AnalysisSession[] = dbChats.map((chat) => ({
+          id: chat._id,
+          name: chat.paper ? `Chat: ${chat.paper.title}` : 'Socratic Chat',
+          type: 'chat',
+          articleIds: chat.paper ? [chat.paper._id] : [],
+          createdDate: chat.createdAt || new Date().toISOString(),
+        }));
+
+        setSessions((prev) => {
+          // Keep non-chat sessions (e.g. comparisons/summaries) from local state, replace chats with database ones
+          const nonChats = prev.filter((s) => s.type !== 'chat');
+          return [...mappedDbChats, ...nonChats];
+        });
+      } catch (err) {
+        console.error('Failed to load history or papers from DB:', err);
+      }
+    };
+
+    loadHistoryAndPapers();
+  }, []);
+
   const filtered = sessions.filter((s) => s.name.toLowerCase().includes(searchQuery.toLowerCase()));
   const filteredChats = chatMessages.filter((m) => (m.question + ' ' + (m.answer || '')).toLowerCase().includes(searchQuery.toLowerCase()));
 
   const stats = {
-    total:       sessions.length,
+    total: sessions.length,
     comparisons: sessions.filter((s) => s.type === 'comparison').length,
-    chats:       sessions.filter((s) => s.type === 'chat').length,
-    articles:    new Set(sessions.flatMap((s) => s.articleIds)).size,
+    chats: sessions.filter((s) => s.type === 'chat').length,
+    articles: new Set(sessions.flatMap((s) => s.articleIds)).size,
   };
 
   // Resume helpers
@@ -57,30 +89,38 @@ export default function HistoryPage() {
   };
 
   const resumeFromMessage = (msg: ChatMessage) => {
-    const msgs = mockChatHistory.filter(m => m.articleId === msg.articleId);
     try {
       localStorage.setItem('resumed_session_id', msg.id);
       localStorage.setItem('resumed_session_article_ids', JSON.stringify([msg.articleId]));
-      const art = mockArticles.find(a => a.id === msg.articleId);
+      const art = allArticles.find(a => a.id === msg.articleId);
       if (art) localStorage.setItem('resumed_session_name', `Chat: ${art.title}`);
-    } catch {}
-    resumeWithMessages(msgs.length ? msgs : [msg]);
+      localStorage.setItem('chat_analyzer_messages_v1', JSON.stringify([]));
+    } catch { }
+    navigate('/chat-analyzer');
   };
 
   const resumeFromSession = (session: AnalysisSession) => {
-    let msgs: ChatMessage[] = [];
-    if (session.type === 'chat') msgs = mockChatHistory.filter(m => session.articleIds.includes(m.articleId));
     try {
       localStorage.setItem('resumed_session_id', session.id);
       localStorage.setItem('resumed_session_article_ids', JSON.stringify(session.articleIds || []));
       if (session.name) localStorage.setItem('resumed_session_name', session.name);
-    } catch {}
-    resumeWithMessages(msgs);
+      localStorage.setItem('chat_analyzer_messages_v1', JSON.stringify([])); // Clear local messages cache
+    } catch { }
+    navigate('/chat-analyzer');
   };
 
-  const deleteSession = (id: string) => {
-    setSessions((prev) => prev.filter((s) => s.id !== id));
-    toast.success('Session deleted');
+  const deleteSession = async (id: string) => {
+    try {
+      const targetSession = sessions.find((s) => s.id === id);
+      if (targetSession && targetSession.type === 'chat') {
+        await deleteChat(id);
+      }
+      setSessions((prev) => prev.filter((s) => s.id !== id));
+      toast.success('Session deleted');
+    } catch (err) {
+      console.error('Failed to delete session:', err);
+      toast.error('Failed to delete session from server');
+    }
   };
 
   // Persist sessions so edits survive reload
@@ -109,9 +149,9 @@ export default function HistoryPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
             { label: 'Total Sessions', value: stats.total, icon: History, color: 'text-red-600' },
-            { label: 'Comparisons',    value: stats.comparisons, icon: GitCompare, color: 'text-purple-600' },
-            { label: 'Chat Sessions',  value: stats.chats,        icon: MessageSquare, color: 'text-blue-600' },
-            { label: 'Articles Used',  value: stats.articles,     icon: BookOpen, color: 'text-emerald-600' },
+            { label: 'Comparisons', value: stats.comparisons, icon: GitCompare, color: 'text-purple-600' },
+            { label: 'Chat Sessions', value: stats.chats, icon: MessageSquare, color: 'text-blue-600' },
+            { label: 'Articles Used', value: stats.articles, icon: BookOpen, color: 'text-emerald-600' },
           ].map(({ label, value, icon: Icon, color }) => (
             <div key={label} className="bg-card border border-border rounded-xl p-4 shadow-sm">
               <div className="flex items-center justify-between mb-2">
@@ -128,7 +168,7 @@ export default function HistoryPage() {
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Search sessions by nameâ€¦"
+            placeholder="Search sessions by name…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-3 bg-card border border-input rounded-xl text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent shadow-sm"
@@ -153,7 +193,7 @@ export default function HistoryPage() {
             {filteredChats.length > 0 ? (
               <div className="space-y-3">
                 {filteredChats.map((msg, idx) => {
-                  const article = mockArticles.find(a => a.id === msg.articleId);
+                  const article = allArticles.find(a => a.id === msg.articleId);
                   return (
                     <div key={idx} className="bg-card border border-border rounded-2xl shadow-sm p-5">
                       <div className="flex items-start gap-3">
@@ -171,7 +211,7 @@ export default function HistoryPage() {
                           onClick={() => resumeFromMessage(msg)}
                           className="px-4 py-2 bg-card hover:bg-slate-100 dark:hover:bg-slate-700 text-foreground rounded-lg text-xs font-bold transition-colors"
                         >
-                          Resume Session â†’
+                          Resume Session →
                         </button>
                       </div>
                     </div>
@@ -182,7 +222,7 @@ export default function HistoryPage() {
               <div className="space-y-3">
                 {filtered.map((session) => {
                   const TypeIcon = TYPE_ICONS[session.type] ?? MessageSquare;
-                  const articles = mockArticles.filter((a) => session.articleIds.includes(a.id));
+                  const articles = allArticles.filter((a) => session.articleIds.includes(a.id));
                   return (
                     <div key={session.id} className="bg-card border border-border rounded-2xl shadow-sm hover:border-red-300 hover:shadow-md transition-all group">
                       <div className="p-5">
@@ -249,7 +289,7 @@ export default function HistoryPage() {
                               <div className="flex flex-wrap gap-2 text-xs">
                                 {articles.slice(0, 6).map((a) => (
                                   <span key={a.id} className="px-2 py-1 bg-muted text-muted-foreground rounded-full border border-border">
-                                    {a.title.length > 36 ? `${a.title.substring(0,36)}â€¦` : a.title}
+                                    {a.title.length > 36 ? `${a.title.substring(0, 36)}…` : a.title}
                                   </span>
                                 ))}
                                 {articles.length > 6 && (
@@ -261,14 +301,14 @@ export default function HistoryPage() {
 
                           <div className="flex items-center gap-2">
                             <div className="text-sm text-muted-foreground">
-                              <span>15 min Â· {articles.length} articles</span>
+                              <span>{articles.length} article{articles.length !== 1 ? 's' : ''}</span>
                             </div>
                             <div className="flex items-center gap-2">
                               <button
                                 onClick={() => resumeFromSession(session)}
-                                className="px-3 py-2 bg-card hover:bg-slate-100 dark:hover:bg-slate-700 text-foreground rounded-lg text-xs font-bold transition-colors"
+                                className="px-3 py-2 bg-card hover:bg-slate-100 dark:hover:bg-slate-700 text-foreground rounded-lg text-xs font-bold transition-colors border border-border"
                               >
-                                Resume Session â†’
+                                Resume Session →
                               </button>
                               <button
                                 onClick={() => deleteSession(session.id)}
@@ -280,8 +320,6 @@ export default function HistoryPage() {
                             </div>
                           </div>
                         </div>
-
-                        {/* (buttons available in header area) */}
                       </div>
                     </div>
                   );

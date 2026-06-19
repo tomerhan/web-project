@@ -1,36 +1,79 @@
-﻿import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   User, Mail, BookOpen, MessageSquare, GitCompare, 
   Calendar, Settings, LogOut, TrendingUp, Trash2 
 } from 'lucide-react';
-import { mockArticles, mockChatHistory, mockAnalysisSessions } from '../../data/mockData';
+import { Article } from '../../data/mockData';
+import { getPapers } from '../../services/paperService';
+import { getUserChats } from '../../services/chatService';
 
 interface ProfileProps {
   onNavigate: (page: string) => void;
 }
 
 export default function Profile({ onNavigate }: ProfileProps) {
-  // Adding the Role to the user object
   const user = {
     name: 'Dr. Sarah Johnson',
     email: 'sarah.johnson@university.edu',
     institution: 'Stanford University',
     field: 'Computer Science & Artificial Intelligence',
     joinDate: '2025-09-15',
-    role: 'lecturer' // We added the role here
+    role: 'lecturer'
   };
 
-  // Using State so we can actually delete sessions
-  const [recentSessions, setRecentSessions] = useState(mockAnalysisSessions);
+  const [recentSessions, setRecentSessions] = useState<any[]>([]);
+  const [articlesCount, setArticlesCount] = useState(0);
+  const [questionsCount, setQuestionsCount] = useState(0);
+  const [comparisonsCount, setComparisonsCount] = useState(0);
+
+  useEffect(() => {
+    const loadRealStatsAndSessions = async () => {
+      try {
+        const papers = await getPapers();
+        setArticlesCount(papers.length);
+
+        const chats = await getUserChats();
+        let qCount = 0;
+        chats.forEach(chat => {
+          qCount += chat.messages.filter(m => m.sender === 'user').length;
+        });
+        setQuestionsCount(qCount);
+
+        const mappedChats = chats.map((chat) => ({
+          id: chat._id,
+          name: chat.paper ? `Chat: ${chat.paper.title}` : 'Socratic Chat',
+          type: 'chat',
+          articleIds: chat.paper ? [chat.paper._id] : [],
+          createdDate: chat.createdAt ? chat.createdAt.split('T')[0] : new Date().toISOString().split('T')[0],
+          duration: 15
+        }));
+
+        let localSessions: any[] = [];
+        try {
+          const raw = localStorage.getItem('analysis_sessions_v1');
+          if (raw) localSessions = JSON.parse(raw);
+        } catch {}
+
+        const nonChats = localSessions.filter(s => s.type !== 'chat');
+        const combined = [...mappedChats, ...nonChats];
+        setRecentSessions(combined);
+        setComparisonsCount(combined.filter(s => s.type === 'comparison').length);
+      } catch (err) {
+        console.error('Failed to load profile stats:', err);
+      }
+    };
+
+    loadRealStatsAndSessions();
+  }, []);
 
   const deleteSession = (id: string) => {
     setRecentSessions(prev => prev.filter(session => session.id !== id));
   };
 
   const stats = [
-    { label: 'Articles in Library', value: mockArticles.length, icon: BookOpen, color: 'emerald' },
-    { label: 'Questions Asked', value: mockChatHistory.length, icon: MessageSquare, color: 'violet' },
-    { label: 'Comparisons Made', value: recentSessions.filter(s => s.type === 'comparison').length, icon: GitCompare, color: 'blue' },
+    { label: 'Articles in Library', value: articlesCount, icon: BookOpen, color: 'emerald' },
+    { label: 'Questions Asked', value: questionsCount, icon: MessageSquare, color: 'violet' },
+    { label: 'Comparisons Made', value: comparisonsCount, icon: GitCompare, color: 'blue' },
     { label: 'Active Days', value: 45, icon: Calendar, color: 'green' }
   ];
 
