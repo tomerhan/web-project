@@ -47,6 +47,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
+  useEffect(() => {
+    const handleLogoutEvent = () => {
+      logout();
+    };
+    window.addEventListener('auth-logout', handleLogoutEvent);
+    return () => {
+      window.removeEventListener('auth-logout', handleLogoutEvent);
+    };
+  }, []);
+
   return (
     <AuthContext.Provider value={{ user, loading, setUser, logout }}>
       {!loading && children}

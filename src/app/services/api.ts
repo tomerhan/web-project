@@ -20,4 +20,19 @@ api.interceptors.request.use(
   }
 );
 
+// Add a response interceptor to handle 401 Unauthorized errors (like expired tokens)
+api.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      localStorage.removeItem('token');
+      window.dispatchEvent(new Event('auth-logout'));
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default api;
+
