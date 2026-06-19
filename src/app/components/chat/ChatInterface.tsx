@@ -8,9 +8,8 @@ import {
   AlignLeft
 } from 'lucide-react';
 // Import mock data and types for articles and chat messages
-import { mockArticles, mockChatHistory, ChatMessage, Article } from '../../data/mockData';
-import { loadUploadedArticles } from '../../../utils/articleStore';
-import { saveUploadedArticle } from '../../../utils/articleStore';
+import { mockChatHistory, ChatMessage, Article } from '../../data/mockData';
+import { getPapers, uploadPaper } from '../../services/paperService';
 // Import authentication context to check user role
 import { useAuth } from '../../context/AuthContext';
 // Import routing hooks for navigation
@@ -52,116 +51,134 @@ interface SavedAnalysis {
 export default function ChatInterface() {
   // Get current user and navigation functions from contexts
   const { user } = useAuth();
-  const navigate  = useNavigate();
+  const navigate = useNavigate();
   const { id: studentId } = useParams();
   // Check if the current view is lecturer view
   const isLecturerView = user?.role === 'lecturer';
 
   // State for chat messages and user input
-  const [messages,        setMessages]        = useState<ChatMessage[]>(mockChatHistory);
-  const [inputMessage,    setInputMessage]    = useState('');
-  const [, setIsTyping]                       = useState(false);
+  const [messages, setMessages] = useState<ChatMessage[]>(mockChatHistory);
+  const [inputMessage, setInputMessage] = useState('');
+  const [, setIsTyping] = useState(false);
 
   // State for uploaded files and upload progress
-  const [uploadedFiles,   setUploadedFiles]   = useState<Article[]>(() => {
-    try {
-      const stored = loadUploadedArticles();
-      if (!stored || stored.length === 0) return mockArticles;
-      return [...stored, ...mockArticles.filter(m => !stored.find(s => s.id === m.id))];
-    } catch (e) { return mockArticles; }
-  });
-  const [uploadProgress,  setUploadProgress]  = useState<number | null>(null);
+  const [uploadedFiles, setUploadedFiles] = useState<Article[]>([]);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
 
   // State for UI modals and menus
-  const [showStatsMenu,       setShowStatsMenu]       = useState(false);
-  const [showUserMenu,        setShowUserMenu]        = useState(false);
-  const [analysisType,        setAnalysisType]        = useState<'analyze' | 'compare' | null>(null);
-  // Track which article IDs have completed analysis. Lecturer sees student's history â†’ all marked analyzed.
-  const [analyzedArticles,    setAnalyzedArticles]    = useState<Set<string>>(() => {
-    if (user?.role === 'lecturer') return new Set(mockArticles.map(a => a.id));
-    try {
-      const stored = loadUploadedArticles();
-      const all = [...stored, ...mockArticles.filter(m => !stored.find(s => s.id === m.id))];
-      return new Set(all.map(a => a.id));
-    } catch (e) {
-      return new Set(mockArticles.map(a => a.id));
-    }
-  });
+  const [showStatsMenu, setShowStatsMenu] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [analysisType, setAnalysisType] = useState<'analyze' | 'compare' | null>(null);
+  // Track which article IDs have completed analysis.
+  const [analyzedArticles, setAnalyzedArticles] = useState<Set<string>>(new Set());
   // Articles that have been part of a Compare action
-  const [comparedArticles,    setComparedArticles]    = useState<Set<string>>(() =>
-    user?.role === 'lecturer' ? new Set([mockArticles[0]?.id, mockArticles[1]?.id].filter(Boolean) as string[]) : new Set()
-  );
+  const [comparedArticles, setComparedArticles] = useState<Set<string>>(new Set());
   const [showComparisonModal, setShowComparisonModal] = useState(false);
 
   // State for article library search and sort
-  const [searchQuery,        setSearchQuery]        = useState('');
-  const [sortBy,             setSortBy]             = useState<'newest' | 'oldest' | 'title'>('newest');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'title'>('newest');
 
   // State for analysis display
-  const [showAnalysisModal,  setShowAnalysisModal]   = useState(false);
-  const [singlePDFView,      setSinglePDFView]       = useState<Article | null>(null);
-  const [activeExplainIdx,   setActiveExplainIdx]    = useState<number | null>(null);
-  const [expandedSummaryId,  setExpandedSummaryId]   = useState<string | null>(null);
+  const [showAnalysisModal, setShowAnalysisModal] = useState(false);
+  const [singlePDFView, setSinglePDFView] = useState<Article | null>(null);
+  const [activeExplainIdx, setActiveExplainIdx] = useState<number | null>(null);
+  const [expandedSummaryId, setExpandedSummaryId] = useState<string | null>(null);
 
   // State for saving analysis with custom name
-  const [showSaveName,  setShowSaveName]  = useState(false);
-  const [saveName,      setSaveName]      = useState('');
+  const [showSaveName, setShowSaveName] = useState(false);
+  const [saveName, setSaveName] = useState('');
 
   // State for selected articles and analysis depth
   const [selectedArticles, setSelectedArticles] = useState<Set<string>>(
     new Set()
   );
-  const [analysisDepth,  setAnalysisDepth]  = useState<1 | 2 | 3>(2);
+  const [analysisDepth, setAnalysisDepth] = useState<1 | 2 | 3>(2);
 
   // State for article groups (organization feature)
-  const [articleGroups, setArticleGroups] = useState<ArticleGroup[]>([
-    { id: 'g1', name: 'AI & NLP Research', articleIds: [mockArticles[0].id, mockArticles[1].id, mockArticles[3].id], createdAt: new Date().toISOString(), hasAnalysis: true, analysisDate: '2024-01-15' },
-    { id: 'g2', name: 'Climate & Energy',  articleIds: [mockArticles[2].id, mockArticles[4].id],                     createdAt: new Date().toISOString(), hasAnalysis: false },
-  ]);
-  const [savedAnalyses] = useState<SavedAnalysis[]>([
-    {
-      id: 'sa-1',
-      name: 'Transformer Architecture Evaluation',
-      articleIds: [mockArticles[0].id],
-      analysisType: 'analyze',
-      prompt: 'Analyze core methodology and metrics',
-      result: 'Mock result content here...',
-      createdAt: new Date().toISOString(),
-    },
-    {
-      id: 'sa-2',
-      name: 'Quantum Cryptography Summary',
-      articleIds: [mockArticles[1].id],
-      analysisType: 'analyze',
-      prompt: 'Summarize post-quantum security challenges',
-      result: 'Mock result content here...',
-      createdAt: new Date().toISOString(),
-    },
-    {
-      id: 'sc-1',
-      name: 'NLP Survey vs Quantum Models',
-      articleIds: [mockArticles[0].id, mockArticles[1].id],
-      analysisType: 'compare',
-      prompt: 'Compare cross-domain data limitations',
-      result: 'Mock comparison content here...',
-      createdAt: new Date().toISOString(),
-    },
-    {
-      id: 'sc-2',
-      name: 'Smart Grid Optimization Frameworks',
-      articleIds: [mockArticles[2].id, mockArticles[3].id],
-      analysisType: 'compare',
-      prompt: 'Compare performance efficiency parameters',
-      result: 'Mock comparison content here...',
-      createdAt: new Date().toISOString(),
-    }
-  ]);
-  const [currentGroupId,    setCurrentGroupId]    = useState('g1');
-  const [activeGroupId,     setActiveGroupId]     = useState('g1');
+  const [articleGroups, setArticleGroups] = useState<ArticleGroup[]>([]);
+  const [savedAnalyses, setSavedAnalyses] = useState<SavedAnalysis[]>([]);
+  const [currentGroupId, setCurrentGroupId] = useState('');
+  const [activeGroupId, setActiveGroupId] = useState('');
+
+  // Fetch papers from the server on mount and build groups & saved analyses
+  useEffect(() => {
+    const loadPapers = async () => {
+      try {
+        const data = await getPapers();
+        setUploadedFiles(data);
+        setAnalyzedArticles(new Set(data.map(p => p.id)));
+
+        if (data.length >= 5) {
+          setArticleGroups([
+            { id: 'g1', name: 'AI & NLP Research', articleIds: [data[0].id, data[1].id, data[3].id], createdAt: new Date().toISOString(), hasAnalysis: true, analysisDate: '2024-01-15' },
+            { id: 'g2', name: 'Climate & Energy', articleIds: [data[2].id, data[4].id], createdAt: new Date().toISOString(), hasAnalysis: false },
+          ]);
+          setCurrentGroupId('g1');
+          setActiveGroupId('g1');
+
+          setSavedAnalyses([
+            {
+              id: 'sa-1',
+              name: 'Transformer Architecture Evaluation',
+              articleIds: [data[0].id],
+              analysisType: 'analyze',
+              prompt: 'Analyze core methodology and metrics',
+              result: 'Mock result content here...',
+              createdAt: new Date().toISOString(),
+            },
+            {
+              id: 'sa-2',
+              name: 'Quantum Cryptography Summary',
+              articleIds: [data[1].id],
+              analysisType: 'analyze',
+              prompt: 'Summarize post-quantum security challenges',
+              result: 'Mock result content here...',
+              createdAt: new Date().toISOString(),
+            },
+            {
+              id: 'sc-1',
+              name: 'NLP Survey vs Quantum Models',
+              articleIds: [data[0].id, data[1].id],
+              analysisType: 'compare',
+              prompt: 'Compare cross-domain data limitations',
+              result: 'Mock comparison content here...',
+              createdAt: new Date().toISOString(),
+            },
+            {
+              id: 'sc-2',
+              name: 'Smart Grid Optimization Frameworks',
+              articleIds: [data[2].id, data[3].id],
+              analysisType: 'compare',
+              prompt: 'Compare performance efficiency parameters',
+              result: 'Mock comparison content here...',
+              createdAt: new Date().toISOString(),
+            }
+          ]);
+
+          if (user?.role === 'lecturer') {
+            setComparedArticles(new Set([data[0].id, data[1].id]));
+          }
+        } else if (data.length > 0) {
+          // If less than 5 papers but has some, create a default group with whatever we have
+          const ids = data.map(p => p.id);
+          setArticleGroups([
+            { id: 'g1', name: 'My Research', articleIds: ids, createdAt: new Date().toISOString(), hasAnalysis: true, analysisDate: new Date().toISOString().split('T')[0] }
+          ]);
+          setCurrentGroupId('g1');
+          setActiveGroupId('g1');
+        }
+      } catch (error) {
+        console.error('Failed to load papers in ChatInterface:', error);
+        toast.error('Failed to load papers');
+      }
+    };
+    loadPapers();
+  }, [user?.role]);
 
   // State for creating new groups
-  const [newGroupName,      setNewGroupName]      = useState('');
-  const [isCreatingGroup,   setIsCreatingGroup]   = useState(false);
+  const [newGroupName, setNewGroupName] = useState('');
+  const [isCreatingGroup, setIsCreatingGroup] = useState(false);
   const [groupArticleSelection, setGroupArticleSelection] = useState<Set<string>>(new Set());
 
   // Reference to chat container for scrolling
@@ -265,8 +282,8 @@ export default function ChatInterface() {
     const newMsg: ChatMessage = {
       id: `c${Date.now()}`,
       articleId: Array.from(selectedArticles)[0] || '1',
-      question:  text,
-      answer:    '',
+      question: text,
+      answer: '',
       timestamp: new Date().toISOString(),
     };
 
@@ -294,7 +311,7 @@ export default function ChatInterface() {
   };
 
   // Function to handle file upload with progress simulation
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
 
@@ -302,27 +319,42 @@ export default function ChatInterface() {
     const interval = setInterval(() => {
       setUploadProgress((p) => {
         if (p === null) return null;
-        if (p >= 100) {
+        if (p >= 90) {
           clearInterval(interval);
-          const na: Article = {
-            ...mockArticles[0],
-            id:         `uploaded-${Date.now()}`,
-            title:      files[0].name.replace('.pdf', ''),
-            year:       new Date().getFullYear(),
-            uploadDate: new Date().toISOString().split('T')[0],
-          };
-            setUploadedFiles((prev) => [na, ...prev]);
-              try { saveUploadedArticle(na); } catch {}
-              // mark newly uploaded article as analyzed so it appears in the analyzed carousel
-              setAnalyzedArticles((prev) => new Set([...prev, na.id]));
-            setSelectedArticles((prev) => new Set([...prev, na.id]));
-          toast.success(`"${files[0].name}" added to library`);
-          setTimeout(() => setUploadProgress(null), 600);
-          return 100;
+          return 90;
         }
-        return p + 7;
+        return p + 15;
       });
-    }, 100);
+    }, 80);
+
+    try {
+      const paperPayload = {
+        title: files[0].name.replace('.pdf', ''),
+        abstract: `Uploaded PDF document: ${files[0].name}`,
+        content: `This is the text content of the paper "${files[0].name}". Let's discuss its methodology, findings, and results.`,
+        authors: ['Uploaded User'],
+        year: new Date().getFullYear(),
+        topics: ['Uploaded'],
+        methodology: 'Unknown',
+        keyFindings: ['Document uploaded successfully'],
+      };
+
+      const na = await uploadPaper(paperPayload);
+
+      clearInterval(interval);
+      setUploadProgress(100);
+
+      setUploadedFiles((prev) => [na, ...prev]);
+      setAnalyzedArticles((prev) => new Set([...prev, na.id]));
+      setSelectedArticles((prev) => new Set([...prev, na.id]));
+      toast.success(`"${files[0].name}" added to library`);
+    } catch (err) {
+      clearInterval(interval);
+      console.error('Failed to upload paper:', err);
+      toast.error('Failed to upload paper to server');
+    } finally {
+      setTimeout(() => setUploadProgress(null), 600);
+    }
   };
 
   // Function to handle exporting the chat as PDF
@@ -412,10 +444,10 @@ export default function ChatInterface() {
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-muted rounded-xl flex items-center justify-center text-red-600 shadow-sm">
               <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                <path d="M8 10h.01"/>
-                <path d="M12 10h.01"/>
-                <path d="M16 10h.01"/>
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                <path d="M8 10h.01" />
+                <path d="M12 10h.01" />
+                <path d="M16 10h.01" />
               </svg>
             </div>
             <div>
@@ -523,8 +555,8 @@ export default function ChatInterface() {
               {showUserMenu && (
                 <div className="absolute top-full right-0 mt-2 w-52 bg-card rounded-xl shadow-lg border border-border overflow-hidden p-2 z-50">
                   {studentId && (
-                    <button 
-                      onClick={() => navigate('/lecturer')} 
+                    <button
+                      onClick={() => navigate('/lecturer')}
                       className="w-full px-4 py-2.5 bg-emerald-100 dark:bg-emerald-900 hover:bg-emerald-200 dark:hover:bg-emerald-800 border border-emerald-300 dark:border-emerald-600 hover:border-emerald-400 dark:hover:border-emerald-500 hover:shadow-md flex items-center gap-2 text-sm text-emerald-800 dark:text-emerald-200 font-bold transition-all rounded-lg"
                     >
                       <ExternalLink className="w-4 h-4" /> Back to Dashboard
@@ -539,7 +571,7 @@ export default function ChatInterface() {
 
       <div className="flex-1 overflow-y-auto bg-muted">
         <div className="w-full max-w-7xl mx-auto p-4 md:p-6 space-y-6 pb-40">
-          
+
           {showSaveName && (
             <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
               <div className="bg-card rounded-2xl shadow-xl w-full max-w-sm p-6 border border-border">
@@ -597,7 +629,7 @@ export default function ChatInterface() {
                 </div>
                 {/* arrows removed here to keep single pair near carousel */}
               </div>
-              
+
               <div className="flex flex-wrap items-center gap-3">
                 <input
                   type="text"
@@ -606,8 +638,8 @@ export default function ChatInterface() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="text-sm bg-slate-800/40 border border-slate-700/50 rounded-xl px-4 py-2 focus:ring-2 focus:ring-blue-600/50 focus:border-blue-500 outline-none text-foreground placeholder:text-slate-500 transition-all shadow-inner w-full sm:w-48"
                 />
-                <select 
-                  value={sortBy} 
+                <select
+                  value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as any)}
                   className="text-sm bg-slate-800/40 border border-slate-700/50 rounded-xl px-4 py-2 focus:ring-2 focus:ring-blue-600/50 focus:border-blue-500 outline-none text-foreground cursor-pointer transition-all shadow-inner"
                 >
@@ -627,7 +659,7 @@ export default function ChatInterface() {
               </div>
             </div>
 
-              {(() => {
+            {(() => {
               // For lecturer view, show all displayed articles under "Articles Read".
               const analyzedOnly = isLecturerView ? displayedArticles : displayedArticles.filter((a) => analyzedArticles.has(a.id));
               const comparisonArticles = analyzedOnly.filter((a) => comparedArticles.has(a.id));
@@ -665,15 +697,14 @@ export default function ChatInterface() {
 
                       return (
                         <div key={article.id} className="snap-start flex-shrink-0 w-[48%] min-w-[48%] flex">
-                            <div
+                          <div
                             onClick={() => !isLecturerView && toggleArticleSelection(article.id)}
-                            className={`relative flex flex-col p-4 rounded-xl border-2 transition-all cursor-pointer min-h-[260px] w-full h-full ${
-                              isLecturerView
+                            className={`relative flex flex-col p-4 rounded-xl border-2 transition-all cursor-pointer min-h-[260px] w-full h-full ${isLecturerView
                                 ? 'border-border bg-card shadow-sm cursor-default'
                                 : isSelected
-                                ? 'border-red-500 dark:border-white bg-card shadow-[0_0_15px_rgba(220,38,38,0.18)]'
-                                : 'border-border bg-card hover:border-red-300 hover:bg-muted/40 shadow-sm'
-                            }`}> 
+                                  ? 'border-red-500 dark:border-white bg-card shadow-[0_0_15px_rgba(220,38,38,0.18)]'
+                                  : 'border-border bg-card hover:border-red-300 hover:bg-muted/40 shadow-sm'
+                              }`}>
                             {!isLecturerView && (
                               <div className="absolute top-4 right-4 z-10">
                                 <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${isSelected ? 'bg-red-500 border-red-500 dark:bg-transparent dark:border-white' : 'border-border bg-card'}`}>
@@ -700,12 +731,12 @@ export default function ChatInterface() {
                               }}
                               className={`flex-1 flex flex-col bg-muted/80 border border-border/60 rounded-lg p-3 mb-3 transition-colors ${canExpand ? 'cursor-pointer hover:bg-muted/90' : ''}`}
                             >
-                                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1 flex items-center gap-1.5 shrink-0">
-                                        <AlignLeft className="w-3 h-3 text-red-500" /> Auto-Summary
-                                      </span>
-                                      <p className={`text-xs text-foreground/80 leading-relaxed ${isExpanded ? '' : 'line-clamp-2'}`}>
-                                        {getShortSummary(article)}
-                                      </p>
+                              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1 flex items-center gap-1.5 shrink-0">
+                                <AlignLeft className="w-3 h-3 text-red-500" /> Auto-Summary
+                              </span>
+                              <p className={`text-xs text-foreground/80 leading-relaxed ${isExpanded ? '' : 'line-clamp-2'}`}>
+                                {getShortSummary(article)}
+                              </p>
                               {canExpand && <span className="text-[10px] text-blue-500 font-medium mt-1">{isExpanded ? 'Show less' : 'Show more'}</span>}
                             </div>
 
@@ -774,15 +805,15 @@ export default function ChatInterface() {
             </div>
 
             <div className="flex items-center gap-3 w-full md:w-auto">
-              <button 
-                onClick={() => setAnalysisType('analyze')} 
+              <button
+                onClick={() => setAnalysisType('analyze')}
                 disabled={selectedArticles.size === 0}
                 className="flex-1 md:px-8 py-3.5 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900 hover:border-slate-600 hover:shadow-lg hover:scale-105 transition-all disabled:opacity-50"
               >
                 Analyze {selectedArticles.size > 0 && `(${selectedArticles.size})`}
               </button>
-              <button 
-                onClick={() => setAnalysisType('compare')} 
+              <button
+                onClick={() => setAnalysisType('compare')}
                 disabled={selectedArticles.size < 2}
                 className="flex-1 md:px-8 py-3.5 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 hover:border-red-800 hover:shadow-lg hover:scale-105 transition-all disabled:opacity-50"
               >
@@ -803,7 +834,7 @@ export default function ChatInterface() {
             setAnalyzedArticles((prev) => new Set([...prev, ...selectedArticles]));
             if (t === 'compare') setComparedArticles((prev) => new Set([...prev, ...selectedArticles]));
             // Demo flag â€” forces Research Chat bar to 100% so the celebration effect is visible
-            try { localStorage.setItem('demo-comprehension-100', '1'); } catch {}
+            try { localStorage.setItem('demo-comprehension-100', '1'); } catch { }
             window.dispatchEvent(new CustomEvent('comprehension-demo-100'));
             setAnalysisType(null);
             if (t === 'compare') setShowComparisonModal(true);

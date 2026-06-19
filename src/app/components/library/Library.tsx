@@ -1,35 +1,40 @@
-﻿import { useState } from 'react';
+﻿import { useState, useEffect } from 'react';
 import {
   Search, Filter, Upload, FileText, Calendar, Users, TrendingUp,
-  LayoutGrid, List, BookOpen, Star, ChevronDown, ChevronUp, Check, Sparkles, Trash2
+  LayoutGrid, List, BookOpen, Star, ChevronDown, ChevronUp, Check, Sparkles, Trash2, Loader2
 } from 'lucide-react';
-import { mockArticles, Article } from '../../data/mockData';
-import { saveUploadedArticle, deleteUploadedArticle } from '../../../utils/articleStore';
-import { loadUploadedArticles } from '../../../utils/articleStore';
+import { Article } from '../../data/mockData';
+import { getPapers, uploadPaper, deletePaper } from '../../services/paperService';
 import { toast } from 'sonner';
 import ArticleIcon from '../ui/ArticleIcon';
 
 type ViewMode = 'grid' | 'list';
 
 export default function Library() {
-  const [searchQuery, setSearchQuery]     = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedTopic, setSelectedTopic] = useState('all');
-  const [articles, setArticles]           = useState<Article[]>(() => {
-    try {
-      const stored = loadUploadedArticles();
-      if (!stored || stored.length === 0) return mockArticles;
-      // merge stored uploads before mockArticles, avoid duplicate ids
-      const merged = [...stored, ...mockArticles.filter(m => !stored.find(s => s.id === m.id))];
-      return merged;
-    } catch (e) {
-      return mockArticles;
-    }
-  });
-  const [viewMode, setViewMode]           = useState<ViewMode>('grid');
-  const [expandedId, setExpandedId]       = useState<string | null>(null);
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [selectedForCompare] = useState<Set<string>>(new Set());
   const [, setShowCompareModal] = useState(false);
+
+  useEffect(() => {
+    const fetchArticles = async () => {
+      try {
+        const data = await getPapers();
+        setArticles(data);
+      } catch (error) {
+        console.error('Failed to load papers:', error);
+        toast.error('Failed to load papers from server');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchArticles();
+  }, []);
 
   const allTopics = ['all', ...new Set(articles.flatMap((a) => a.topics))];
 
@@ -41,7 +46,7 @@ export default function Library() {
     return matchesSearch && matchesTopic;
   });
 
-  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
 
@@ -49,42 +54,55 @@ export default function Library() {
     const interval = setInterval(() => {
       setUploadProgress((prev) => {
         if (prev === null) return null;
-        if (prev >= 100) {
+        if (prev >= 90) {
           clearInterval(interval);
-          const newArticle: Article = {
-            id: `upload-${Date.now()}`,
-            title: files[0].name.replace('.pdf', ''),
-            authors: ['Uploaded'],
-            abstract: '',
-            uploadDate: new Date().toISOString().split('T')[0],
-            pdfUrl: '#',
-            topics: [],
-            methodology: 'Unknown',
-            keyFindings: [],
-            citations: 0,
-            year: new Date().getFullYear(),
-          };
-          setArticles((p) => [newArticle, ...p]);
-          try { saveUploadedArticle(newArticle); } catch {}
-          // notify other parts of the app (ChatInterface) about the new upload
-          try { window.dispatchEvent(new CustomEvent('uploaded-article', { detail: newArticle })); } catch {}
-          toast.success(`"${files[0].name}" uploaded successfully`);
-          setTimeout(() => setUploadProgress(null), 500);
-          return 100;
+          return 90;
         }
-        return prev + 8;
+        return prev + 15;
       });
-    }, 120);
+    }, 80);
+
+    try {
+      const paperPayload = {
+        title: files[0].name.replace('.pdf', ''),
+        abstract: `Uploaded PDF document: ${files[0].name}`,
+        content: `This is the text content of the paper "${files[0].name}". Let's discuss its methodology, findings, and results.`,
+        authors: ['Uploaded User'],
+        year: new Date().getFullYear(),
+        topics: ['Uploaded'],
+        methodology: 'Unknown',
+        keyFindings: ['Document uploaded successfully'],
+      };
+
+      const newArticle = await uploadPaper(paperPayload);
+
+      clearInterval(interval);
+      setUploadProgress(100);
+      setArticles((p) => [newArticle, ...p]);
+
+      // notify other parts of the app (ChatInterface) about the new upload
+      try { window.dispatchEvent(new CustomEvent('uploaded-article', { detail: newArticle })); } catch { }
+      toast.success(`"${files[0].name}" uploaded successfully`);
+    } catch (err) {
+      clearInterval(interval);
+      console.error('Failed to upload paper:', err);
+      toast.error('Failed to upload paper to server');
+    } finally {
+      setTimeout(() => setUploadProgress(null), 500);
+    }
   };
 
   const bestMatchId = [...articles].sort((a, b) => b.citations - a.citations)[0]?.id;
 
-  const handleDeleteArticle = (id: string) => {
-    // remove from local state
-    setArticles((prev) => prev.filter(a => a.id !== id));
-    // remove from persisted uploads if present
-    try { deleteUploadedArticle(id); } catch (e) {}
-    toast.success('Article deleted');
+  const handleDeleteArticle = async (id: string) => {
+    try {
+      await deletePaper(id);
+      setArticles((prev) => prev.filter(a => a.id !== id));
+      toast.success('Article deleted');
+    } catch (err) {
+      console.error('Failed to delete paper:', err);
+      toast.error('Failed to delete paper');
+    }
   };
 
   // Similar-article suggestions: pick top-cited from each top topic in the library
@@ -104,7 +122,7 @@ export default function Library() {
 
   return (
     <div className="flex-1 overflow-y-auto bg-muted">
-      
+
       {/* Upload progress bar */}
       {uploadProgress !== null && (
         <div className="fixed bottom-6 right-6 z-50 bg-card border border-border rounded-2xl shadow-xl p-4 w-72">
@@ -125,7 +143,7 @@ export default function Library() {
           </div>
         </div>
       )}
-      
+
       {/* Header */}
       <div className="bg-card border-b border-border px-6 py-5 flex-shrink-0">
         <div className="max-w-6xl mx-auto">
@@ -202,14 +220,20 @@ export default function Library() {
           </div>
         </div>
       </div>
-      
-      
+
+
       {/* Articles */}
       <div className="max-w-6xl mx-auto px-6 py-8 space-y-6">
 
-          {/* Similar-article suggestions moved to end of page */}
+        {/* Similar-article suggestions moved to end of page */}
 
-        {filteredArticles.length === 0 ? (
+        {isLoading ? (
+          <div className="bg-card border border-border rounded-2xl p-12 text-center shadow-sm flex flex-col items-center justify-center">
+            <Loader2 className="w-10 h-10 text-red-600 animate-spin mb-4" />
+            <h3 className="font-bold text-foreground mb-1">Loading articles...</h3>
+            <p className="text-sm text-muted-foreground">Connecting to the database.</p>
+          </div>
+        ) : filteredArticles.length === 0 ? (
           <div className="bg-card border border-border rounded-2xl p-12 text-center shadow-sm">
             <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="font-bold text-foreground mb-1">No articles found</h3>
@@ -219,14 +243,13 @@ export default function Library() {
           /* GRID VIEW */
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             {filteredArticles.map((article) => {
-              const isBest      = article.id === bestMatchId;
-              const isExpanded  = expandedId === article.id;
+              const isBest = article.id === bestMatchId;
+              const isExpanded = expandedId === article.id;
               return (
                 <div
                   key={article.id}
-                  className={`bg-card rounded-2xl border-2 shadow-sm hover:shadow-md transition-all group ${
-                    isBest ? 'border-amber-300' : 'border-border hover:border-border'
-                  }`}
+                  className={`bg-card rounded-2xl border-2 shadow-sm hover:shadow-md transition-all group ${isBest ? 'border-amber-300' : 'border-border hover:border-border'
+                    }`}
                 >
                   <div className="p-5">
                     {/* Badge */}
@@ -311,9 +334,8 @@ export default function Library() {
               return (
                 <div
                   key={article.id}
-                  className={`flex items-center gap-4 px-5 py-4 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors group ${
-                    idx < filteredArticles.length - 1 ? 'border-b border-border' : ''
-                  } ${isBest ? 'bg-amber-50/50' : ''}`}
+                  className={`flex items-center gap-4 px-5 py-4 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors group ${idx < filteredArticles.length - 1 ? 'border-b border-border' : ''
+                    } ${isBest ? 'bg-amber-50/50' : ''}`}
                 >
                   <ArticleIcon size="md" title="Article">
                     <FileText className="w-5 h-5 text-current" />
