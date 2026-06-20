@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Search, Filter, Upload, FileText, Calendar, Users, TrendingUp,
   LayoutGrid, List, BookOpen, Star, ChevronDown, ChevronUp, Check, Sparkles, Trash2, Loader2
@@ -63,18 +63,7 @@ export default function Library() {
     }, 80);
 
     try {
-      const paperPayload = {
-        title: files[0].name.replace('.pdf', ''),
-        abstract: `Uploaded PDF document: ${files[0].name}`,
-        content: `This is the text content of the paper "${files[0].name}". Let's discuss its methodology, findings, and results.`,
-        authors: ['Uploaded User'],
-        year: new Date().getFullYear(),
-        topics: ['Uploaded'],
-        methodology: 'Unknown',
-        keyFindings: ['Document uploaded successfully'],
-      };
-
-      const newArticle = await uploadPaper(paperPayload);
+      const newArticle = await uploadPaper(files[0]);
 
       clearInterval(interval);
       setUploadProgress(100);

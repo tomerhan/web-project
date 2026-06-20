@@ -328,56 +328,7 @@ export default function ChatInterface() {
     }, 80);
 
     try {
-      let extracted = { text: '', abstract: '' };
-      try {
-        extracted = await extractTextFromPDF(files[0]);
-      } catch (err) {
-        console.error('Failed to parse PDF text:', err);
-        toast.error('Could not extract PDF text, using file name instead.');
-        extracted = {
-          text: `This is the text content of the paper "${files[0].name}". Let's discuss its methodology, findings, and results.`,
-          abstract: `Uploaded PDF document: ${files[0].name}`
-        };
-      }
-
-      let abstract = extracted.abstract || `Uploaded PDF document: ${files[0].name}`;
-      if (abstract.length > 500) {
-        abstract = abstract.substring(0, 500) + '...';
-      }
-
-      // Try to parse year from first page text
-      let year = new Date().getFullYear();
-      const yearMatch = extracted.text.substring(0, 2000).match(/\b(20\d{2})\b/);
-      if (yearMatch) {
-        const y = parseInt(yearMatch[1]);
-        if (y >= 1990 && y <= new Date().getFullYear()) {
-          year = y;
-        }
-      }
-
-      // Build topics from standard keywords
-      const topics: string[] = [];
-      const keywords = ['attention', 'learning', 'transformer', 'network', 'quantum', 'cryptography', 'climate', 'energy', 'carbon', 'security', 'model', 'data'];
-      const textLower = extracted.text.toLowerCase();
-      keywords.forEach(kw => {
-        if (textLower.includes(kw) && topics.length < 4) {
-          topics.push(kw.charAt(0).toUpperCase() + kw.slice(1));
-        }
-      });
-      if (topics.length === 0) topics.push('Research');
-
-      const paperPayload = {
-        title: files[0].name.replace('.pdf', ''),
-        abstract: abstract,
-        content: extracted.text,
-        authors: ['Uploaded User'],
-        year: year,
-        topics: topics,
-        methodology: 'Determined from document text',
-        keyFindings: ['Discuss methodology and findings with Socratic Assistant'],
-      };
-
-      const na = await uploadPaper(paperPayload);
+      const na = await uploadPaper(files[0]);
 
       clearInterval(interval);
       setUploadProgress(100);

@@ -1,7 +1,8 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { ArrowLeft, MessageSquare, FileText, Users, Calendar, TrendingUp, Send, Download, Share2, BookOpen, Sparkles } from 'lucide-react';
 import { mockArticles, mockChatHistory, ChatMessage, Article } from '../../data/mockData';
 import { loadUploadedArticles } from '../../../utils/articleStore';
+import SinglePDFViewer from './SinglePDFViewer';
 
 interface ArticleDetailProps {
   articleId: string;
@@ -18,6 +19,7 @@ export default function ArticleDetail({ articleId, onNavigate }: ArticleDetailPr
   );
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [showPDF, setShowPDF] = useState(false);
 
   if (!article) {
     return (
@@ -157,7 +159,10 @@ export default function ArticleDetail({ articleId, onNavigate }: ArticleDetailPr
             <div className="bg-gradient-to-br from-emerald-50 to-violet-50 rounded-lg border border-emerald-200 p-6">
               <h3 className="font-semibold text-slate-900 mb-3">Quick Actions</h3>
               <div className="space-y-2">
-                <button className="w-full px-4 py-2 bg-white text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-sm border border-slate-200">
+                <button
+                  onClick={() => setShowPDF(true)}
+                  className="w-full px-4 py-2 bg-white text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-sm border border-slate-200"
+                >
                   View Full PDF
                 </button>
                 <button className="w-full px-4 py-2 bg-white text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-sm border border-slate-200">
@@ -288,6 +293,9 @@ export default function ArticleDetail({ articleId, onNavigate }: ArticleDetailPr
           </div>
         </div>
       </div>
+      {showPDF && (
+        <SinglePDFViewer article={article} onClose={() => setShowPDF(false)} />
+      )}
     </div>
   );
 }

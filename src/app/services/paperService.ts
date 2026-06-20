@@ -36,17 +36,15 @@ export async function getPaperById(id: string): Promise<Article> {
   };
 }
 
-export async function uploadPaper(paperData: {
-  title: string;
-  abstract?: string;
-  content: string;
-  authors?: string[];
-  year?: number;
-  topics?: string[];
-  methodology?: string;
-  keyFindings?: string[];
-}): Promise<Article> {
-  const response = await api.post('/papers', paperData);
+export async function uploadPaper(file: File): Promise<Article> {
+  const formData = new FormData();
+  formData.append('pdfFile', file);
+
+  const response = await api.post('/papers', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
   const paper = response.data;
   return {
     id: paper._id,
