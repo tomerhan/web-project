@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Settings, User, Bell, Palette, Shield, BookOpen,
   ChevronRight, Check, Sun, Moon, Type
@@ -8,18 +8,19 @@ import { useTheme } from '../../context/ThemeContext';
 import FontSelector from './FontSelector';
 import { toast } from 'sonner';
 import { saveSettingsToStorage, loadSettingsFromStorage, UserSettings } from '../../../utils/settingsStorage';
+import api from '../../services/api';
 
 type Section = 'profile' | 'preferences' | 'notifications' | 'privacy';
 
 const sections: { id: Section; icon: typeof Settings; label: string; desc: string }[] = [
-  { id: 'profile',       icon: User,    label: 'Profile',        desc: 'Name, email, institution' },
+  { id: 'profile',       icon: User,    label: 'Profile',        desc: 'Name, institution' },
   { id: 'preferences',   icon: Palette, label: 'Preferences',    desc: 'Analysis defaults, citation format' },
   { id: 'notifications', icon: Bell,    label: 'Notifications',  desc: 'Alerts, digests, reminders' },
   { id: 'privacy',       icon: Shield,  label: 'Privacy',        desc: 'Data sharing, export, deletion' },
 ];
 
 export default function SettingsPage() {
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
   const { theme, setTheme } = useTheme();
   const [activeSection, setActiveSection] = useState<Section>('profile');
   const [name, setName] = useState('');
@@ -31,20 +32,20 @@ export default function SettingsPage() {
   const [emailDigest, setEmailDigest] = useState(true);
   const [analysisAlerts, setAnalysisAlerts] = useState(true);
 
-  // Load settings from local storage on component mount
+  // Load settings from local storage and DB user profile
   useEffect(() => {
     const settings = loadSettingsFromStorage();
-    setName(settings.name);
-    setEmail(settings.email);
-    setInstitution(settings.institution);
+    setName(user?.name || settings.name || '');
+    setEmail(user?.email || settings.email || '');
+    setInstitution(user?.institution || settings.institution || '');
     setResearchField(settings.researchField);
     setCitationFormat(settings.citationFormat);
     setDefaultDepth(settings.defaultDepth);
     setEmailDigest(settings.emailDigest);
     setAnalysisAlerts(settings.analysisAlerts);
-  }, []);
+  }, [user]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const settings: Partial<UserSettings> = {
       name,
       email,
@@ -57,7 +58,20 @@ export default function SettingsPage() {
     };
     
     saveSettingsToStorage(settings);
-    toast.success('Settings saved successfully!');
+
+    if (activeSection === 'profile') {
+      try {
+        const response = await api.put('/users/profile', { name, institution });
+        if (setUser) {
+          setUser(response.data.user);
+        }
+        toast.success('Profile saved to database successfully!');
+      } catch (error: any) {
+        toast.error(error.response?.data?.message || 'Failed to update profile in database');
+      }
+    } else {
+      toast.success('Settings saved successfully!');
+    }
   };
 
   return (
@@ -137,6 +151,11 @@ export default function SettingsPage() {
                   <div>
                     <div className="font-bold text-foreground text-lg">{user?.name}</div>
                     <div className="text-sm text-muted-foreground">{user?.email}</div>
+                    {user?.institution && (
+                      <div className="text-xs text-muted-foreground mb-1">
+                        Institution: {user.institution}
+                      </div>
+                    )}
                     <span className="text-xs font-bold px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-foreground border border-slate-300 dark:border-slate-600 rounded-md">
                       {user?.role === 'lecturer' ? 'Lecturer' : 'Student'}
                     </span>
@@ -148,15 +167,6 @@ export default function SettingsPage() {
                     <input
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="w-full px-4 py-3 border border-border rounded-lg text-sm bg-background text-foreground focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-foreground mb-1">Email</label>
-                    <input
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      type="email"
                       className="w-full px-4 py-3 border border-border rounded-lg text-sm bg-background text-foreground focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all"
                     />
                   </div>

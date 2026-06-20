@@ -47,7 +47,8 @@ export default function Register() {
         name: formData.name,
         email: formData.email,
         password: formData.password,
-        role: formData.role
+        role: formData.role,
+        institution: formData.institution
       });
       
       toast.success('Account created successfully! Please sign in.');

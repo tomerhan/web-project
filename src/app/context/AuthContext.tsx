@@ -9,6 +9,7 @@ export interface User {
   role: 'lecturer' | 'student';
   profilePicture?: string;
   firebaseUid?: string;
+  institution?: string;
 }
 
 interface AuthContextType {
