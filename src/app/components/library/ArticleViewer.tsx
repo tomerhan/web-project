@@ -152,7 +152,7 @@ export default function ArticleViewer({ articles, onClose }: ArticleViewerProps)
         <div className="bg-slate-800 text-white px-4 py-3 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <FileText className="w-5 h-5 text-red-400" />
+              <FileText className="w-5 h-5 text-red-600" />
               <div className="flex flex-col">
                 <span className="text-xs text-slate-400 font-medium tracking-wider uppercase">
                   {isComparison ? 'Comparison View' : 'Document Viewer'}
@@ -165,7 +165,7 @@ export default function ArticleViewer({ articles, onClose }: ArticleViewerProps)
             
             {isComparison && (
               <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-slate-700 rounded-lg border border-slate-600">
-                <SplitSquareHorizontal className="w-4 h-4 text-slate-300" />
+                <SplitSquareHorizontal className="w-4 h-4 text-red-600" />
                 <span className="text-xs font-medium text-slate-300">Side-by-Side</span>
               </div>
             )}

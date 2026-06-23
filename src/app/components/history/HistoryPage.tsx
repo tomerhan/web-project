@@ -197,7 +197,7 @@ export default function HistoryPage() {
                   return (
                     <div key={idx} className="bg-card border border-border rounded-2xl shadow-sm p-5">
                       <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-blue-50 text-blue-600">
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-red-50 text-red-600">
                           <MessageSquare className="w-5 h-5" />
                         </div>
                         <div className="flex-1 min-w-0">

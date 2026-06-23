@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Search, Filter, Upload, FileText, Calendar, Users, TrendingUp,
   LayoutGrid, List, BookOpen, Star, ChevronDown, ChevronUp, Check, Sparkles, Trash2, Loader2
 } from 'lucide-react';
 import { Article } from '../../data/mockData';
-import { getPapers, uploadPaper, deletePaper } from '../../services/paperService';
+import { getPapers, uploadPaper, deletePaper, getSuggestionsForPapers, PaperSuggestion } from '../../services/paperService';
 import { toast } from 'sonner';
 import ArticleIcon from '../ui/ArticleIcon';
 
@@ -20,6 +20,12 @@ export default function Library() {
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [selectedForCompare] = useState<Set<string>>(new Set());
   const [, setShowCompareModal] = useState(false);
+  const [suggestions, setSuggestions] = useState<PaperSuggestion[]>([]);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
+  // Which papers the suggestion search is based on (user-chosen).
+  const [suggestSelection, setSuggestSelection] = useState<Set<string>>(new Set());
+  const defaultSelectedRef = useRef(false);
 
   useEffect(() => {
     const fetchArticles = async () => {
@@ -35,6 +41,41 @@ export default function Library() {
     };
     fetchArticles();
   }, []);
+
+  // Pre-select the most-cited paper as a sensible default once articles load.
+  // The user can change the selection and trigger the search with the button.
+  useEffect(() => {
+    if (articles.length === 0 || defaultSelectedRef.current) return;
+    defaultSelectedRef.current = true;
+    const seed = [...articles].sort((a, b) => b.citations - a.citations)[0];
+    if (seed) setSuggestSelection(new Set([seed.id]));
+  }, [articles]);
+
+  const toggleSuggestSelection = (id: string) => {
+    setSuggestSelection((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  // Run the suggestion search for the chosen papers (merged keywords on the server).
+  const runSuggestions = async () => {
+    const ids = Array.from(suggestSelection);
+    if (ids.length === 0) { toast.error('Select at least one paper'); return; }
+    setSuggestionsLoading(true);
+    setHasSearched(true);
+    try {
+      const data = await getSuggestionsForPapers(ids, 8);
+      setSuggestions(data);
+      if (data.length === 0) toast.info('No related papers found for this selection');
+    } catch (err) {
+      console.error('Failed to load suggestions:', err);
+      toast.error('Failed to fetch suggested papers');
+    } finally {
+      setSuggestionsLoading(false);
+    }
+  };
 
   const allTopics = ['all', ...new Set(articles.flatMap((a) => a.topics))];
 
@@ -94,21 +135,6 @@ export default function Library() {
     }
   };
 
-  // Similar-article suggestions: pick top-cited from each top topic in the library
-  const topTopics = (() => {
-    const counts: Record<string, number> = {};
-    articles.forEach((a) => a.topics.forEach((t) => { counts[t] = (counts[t] || 0) + 1; }));
-    return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([t]) => t);
-  })();
-  const suggestions = topTopics
-    .map((topic) => {
-      const pool = articles.filter((a) => a.topics.includes(topic));
-      return pool.sort((a, b) => b.citations - a.citations)[0];
-    })
-    .filter(Boolean)
-    .filter((a, idx, arr) => arr.findIndex((x) => x.id === a.id) === idx)
-    .slice(0, 5); // show up to 5 suggested articles instead of 3
-
   return (
     <div className="flex-1 overflow-y-auto bg-muted">
 
@@ -138,7 +164,7 @@ export default function Library() {
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-slate-800 border border-slate-700 rounded-xl flex items-center justify-center text-slate-200">
+              <div className="w-10 h-10 bg-slate-800 border border-slate-700 rounded-xl flex items-center justify-center text-red-600">
                 <BookOpen className="w-5 h-5 text-white" />
               </div>
               <div>
@@ -151,7 +177,7 @@ export default function Library() {
               {selectedForCompare.size > 0 && (
                 <button
                   onClick={() => setShowCompareModal(true)}
-                  className="hidden sm:flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 transition-colors shadow-sm"
+                  className="hidden sm:flex items-center gap-1.5 px-3 py-2 bg-red-600 text-white rounded-lg text-sm font-bold hover:bg-red-700 transition-colors shadow-sm"
                 >
                   <Check className="w-3.5 h-3.5" />
                   Compare ({selectedForCompare.size})
@@ -234,17 +260,18 @@ export default function Library() {
             {filteredArticles.map((article) => {
               const isBest = article.id === bestMatchId;
               const isExpanded = expandedId === article.id;
+              const isSelected = suggestSelection.has(article.id);
               return (
                 <div
                   key={article.id}
-                  className={`bg-card rounded-2xl border-2 shadow-sm hover:shadow-md transition-all group ${isBest ? 'border-amber-300' : 'border-border hover:border-border'
+                  className={`bg-card rounded-2xl border-2 shadow-sm hover:shadow-md transition-all group ${isSelected ? 'border-red-500' : isBest ? 'border-amber-300' : 'border-border hover:border-border'
                     }`}
                 >
                   <div className="p-5">
                     {/* Badge */}
                     {isBest && (
                       <div className="flex items-center gap-1.5 mb-2">
-                        <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                        <Star className="w-3.5 h-3.5 text-red-600 fill-amber-500" />
                         <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider">
                           Most Cited
                         </span>
@@ -259,6 +286,13 @@ export default function Library() {
                           {article.authors[0]} et al. Â· {article.year}
                         </p>
                       </div>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); toggleSuggestSelection(article.id); }}
+                        title={isSelected ? 'Selected for suggestions' : 'Select for suggestions'}
+                        className={`shrink-0 w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors ${isSelected ? 'bg-red-600 border-red-600 text-white' : 'border-slate-300 dark:border-slate-600 hover:border-red-400'}`}
+                      >
+                        {isSelected && <Check className="w-4 h-4" strokeWidth={3} />}
+                      </button>
                     </div>
 
                     {/* Stats row */}
@@ -320,12 +354,20 @@ export default function Library() {
           <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
             {filteredArticles.map((article, idx) => {
               const isBest = article.id === bestMatchId;
+              const isSelected = suggestSelection.has(article.id);
               return (
                 <div
                   key={article.id}
                   className={`flex items-center gap-4 px-5 py-4 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors group ${idx < filteredArticles.length - 1 ? 'border-b border-border' : ''
-                    } ${isBest ? 'bg-amber-50/50' : ''}`}
+                    } ${isSelected ? 'bg-red-50 dark:bg-red-950/20' : isBest ? 'bg-amber-50/50' : ''}`}
                 >
+                  <button
+                    onClick={(e) => { e.stopPropagation(); toggleSuggestSelection(article.id); }}
+                    title={isSelected ? 'Selected for suggestions' : 'Select for suggestions'}
+                    className={`shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${isSelected ? 'bg-red-600 border-red-600 text-white' : 'border-slate-300 dark:border-slate-600 hover:border-red-400'}`}
+                  >
+                    {isSelected && <Check className="w-3.5 h-3.5" strokeWidth={3} />}
+                  </button>
                   <ArticleIcon size="md" title="Article">
                     <FileText className="w-5 h-5 text-current" />
                   </ArticleIcon>
@@ -337,7 +379,7 @@ export default function Library() {
                       <h3 className="font-bold text-foreground text-sm truncate">{article.title}</h3>
                       {isBest && (
                         <span className="flex items-center gap-1 flex-shrink-0">
-                          <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
+                          <Star className="w-3 h-3 text-red-600 fill-amber-500" />
                           <span className="text-[10px] font-bold text-amber-600">Top</span>
                         </span>
                       )}
@@ -356,24 +398,59 @@ export default function Library() {
           </div>
         )}
 
-        {/* Suggested Similar Articles - shown once at page end */}
-        {suggestions.length > 0 && (
+        {/* Suggested popular papers — pick which of your papers to base the
+            search on, then fetch the most-cited related papers (by keywords). */}
+        {articles.length > 0 && (
           <div className="bg-card border border-border rounded-2xl p-5 shadow-sm">
-            <h2 className="font-bold text-foreground text-lg mb-2">Suggested Similar Articles</h2>
-            <p className="text-sm text-muted-foreground mb-3">Based on popular topics in your library</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {suggestions.map((s) => (
-                <div key={s.id} className="flex items-center gap-3 p-3 bg-muted rounded-lg border border-border">
-                  <ArticleIcon size="sm" title={s.title}>
-                    <FileText className="w-4 h-4 text-current" />
-                  </ArticleIcon>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-sm truncate">{s.title}</div>
-                    <div className="text-xs text-muted-foreground">{s.authors[0]} Â· {s.year}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <h2 className="font-bold text-foreground text-lg mb-2 flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-red-600" />
+              Find Suggested Papers
+            </h2>
+            <p className="text-sm text-muted-foreground mb-3">
+              Tick the papers above to base the search on, then search for the most-cited related work.
+            </p>
+
+            {/* Search button */}
+            <button
+              onClick={runSuggestions}
+              disabled={suggestSelection.size === 0 || suggestionsLoading}
+              className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-xl text-sm font-bold transition-colors mb-4"
+            >
+              {suggestionsLoading
+                ? <><Loader2 className="w-4 h-4 animate-spin" /> Searching…</>
+                : <><Search className="w-4 h-4" /> Find Suggestions ({suggestSelection.size})</>
+              }
+            </button>
+
+            {/* Results */}
+            {suggestionsLoading ? null : suggestions.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {suggestions.map((s) => (
+                  <a
+                    key={s.externalId}
+                    href={s.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-start gap-3 p-3 bg-muted rounded-lg border border-border hover:border-red-300 hover:shadow-sm transition-all"
+                  >
+                    <ArticleIcon size="sm" title={s.title}>
+                      <FileText className="w-4 h-4 text-current" />
+                    </ArticleIcon>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm line-clamp-2">{s.title}</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">
+                        {s.authors[0] || 'Unknown'}{s.year ? ` · ${s.year}` : ''}
+                      </div>
+                      <div className="flex items-center gap-1 text-[11px] font-bold text-red-600 mt-1">
+                        <TrendingUp className="w-3 h-3" /> {s.citations.toLocaleString()} citations
+                      </div>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            ) : hasSearched ? (
+              <p className="text-sm text-muted-foreground py-2">No related papers found for this selection.</p>
+            ) : null}
           </div>
         )}
       </div>

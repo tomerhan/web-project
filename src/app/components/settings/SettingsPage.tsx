@@ -79,7 +79,7 @@ export default function SettingsPage() {
       {/* Page Header */}
       <div className="bg-card border-b border-border px-6 py-5">
         <div className="max-w-4xl mx-auto flex items-center gap-3">
-          <div className="w-10 h-10 bg-slate-800 border border-slate-700 rounded-xl flex items-center justify-center text-slate-200">
+          <div className="w-10 h-10 bg-slate-800 border border-slate-700 rounded-xl flex items-center justify-center text-red-600">
             <Settings className="w-5 h-5" />
           </div>
           <div>
@@ -110,7 +110,7 @@ export default function SettingsPage() {
                     <div className="text-sm font-bold truncate">{s.label}</div>
                     <div className="text-[11px] text-muted-foreground truncate">{s.desc}</div>
                   </div>
-                  {activeSection === s.id && <ChevronRight className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400 flex-shrink-0" />}
+                  {activeSection === s.id && <ChevronRight className="w-3.5 h-3.5 text-red-600 dark:text-red-600 flex-shrink-0" />}
                 </button>
               ))}
             </div>
@@ -142,7 +142,7 @@ export default function SettingsPage() {
             {activeSection === 'profile' && (
               <div className="p-4 space-y-6">
                 <h2 className="font-bold text-foreground flex items-center gap-2">
-                  <User className="w-5 h-5 text-slate-600" /> Profile
+                  <User className="w-5 h-5 text-red-600" /> Profile
                 </h2>
                 <div className="flex items-center gap-4">
                   <div className="w-16 h-16 bg-gradient-to-br from-red-500 to-red-700 rounded-full flex items-center justify-center text-white text-2xl font-bold flex-shrink-0">
@@ -167,7 +167,7 @@ export default function SettingsPage() {
                     <input
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="w-full px-4 py-3 border border-border rounded-lg text-sm bg-background text-foreground focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all"
+                      className="w-full px-4 py-3 border border-border rounded-lg text-sm bg-background text-foreground focus:ring-2 focus:ring-red-500 focus:border-red-500 focus:outline-none transition-all"
                     />
                   </div>
                   <div>
@@ -176,7 +176,7 @@ export default function SettingsPage() {
                       value={institution}
                       onChange={(e) => setInstitution(e.target.value)}
                       placeholder="Enter your institution"
-                      className="w-full px-4 py-3 border border-border rounded-lg text-sm bg-background text-foreground focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all"
+                      className="w-full px-4 py-3 border border-border rounded-lg text-sm bg-background text-foreground focus:ring-2 focus:ring-red-500 focus:border-red-500 focus:outline-none transition-all"
                     />
                   </div>
                   <div>
@@ -184,7 +184,7 @@ export default function SettingsPage() {
                     <input
                       value={researchField}
                       onChange={(e) => setResearchField(e.target.value)}
-                      className="w-full px-4 py-3 border border-border rounded-lg text-sm bg-background text-foreground focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all"
+                      className="w-full px-4 py-3 border border-border rounded-lg text-sm bg-background text-foreground focus:ring-2 focus:ring-red-500 focus:border-red-500 focus:outline-none transition-all"
                     />
                   </div>
                 </div>
@@ -201,7 +201,7 @@ export default function SettingsPage() {
             {activeSection === 'preferences' && (
               <div className="p-4 space-y-6">
                 <h2 className="font-bold text-foreground flex items-center gap-2">
-                  <Palette className="w-5 h-5 text-slate-600" /> Preferences
+                  <Palette className="w-5 h-5 text-red-600" /> Preferences
                 </h2>
 
                 {/* Font Selection */}
@@ -293,7 +293,7 @@ export default function SettingsPage() {
             {activeSection === 'notifications' && (
               <div className="p-4 space-y-5">
                 <h2 className="font-bold text-foreground flex items-center gap-2">
-                  <Bell className="w-5 h-5 text-slate-600" /> Notifications
+                  <Bell className="w-5 h-5 text-red-600" /> Notifications
                 </h2>
                 {[
                   { label: 'Weekly research digest', desc: 'Summary of your library activity', state: emailDigest, setter: setEmailDigest },
@@ -319,7 +319,7 @@ export default function SettingsPage() {
             {activeSection === 'privacy' && (
               <div className="p-4 space-y-5">
                 <h2 className="font-bold text-foreground flex items-center gap-2">
-                  <Shield className="w-5 h-5 text-slate-600" /> Privacy & Data
+                  <Shield className="w-5 h-5 text-red-600" /> Privacy & Data
                 </h2>
                 <div className="bg-card border border-border rounded-xl p-4">
                   <p className="text-sm text-muted-foreground font-medium">
@@ -333,8 +333,8 @@ export default function SettingsPage() {
                   >
                     <BookOpen className="w-5 h-5 text-muted-foreground" />
                     <div>
-                      <div className="font-bold text-blue-400 text-sm">Export all data</div>
-                      <div className="text-xs text-blue-300">Download your library and chat history</div>
+                      <div className="font-bold text-red-400 text-sm">Export all data</div>
+                      <div className="text-xs text-red-300">Download your library and chat history</div>
                     </div>
                     <ChevronRight className="w-4 h-4 text-muted-foreground ml-auto" />
                   </button>
@@ -342,7 +342,7 @@ export default function SettingsPage() {
                     onClick={() => toast.error('Account deletion requires email confirmation. A link has been sent.')}
                     className="w-full flex items-center gap-3 px-4 py-3.5 border border-border rounded-xl hover:bg-red-50 transition-all active:scale-98 text-left"
                   >
-                    <Shield className="w-5 h-5 text-red-500" />
+                    <Shield className="w-5 h-5 text-red-600" />
                     <div>
                       <div className="font-bold text-red-400 text-sm">Delete account</div>
                       <div className="text-xs text-red-300">Permanently remove all your data</div>

@@ -106,7 +106,7 @@ export default function AnalyzedReports() {
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-slate-800 border border-slate-700 rounded-xl flex items-center justify-center text-slate-200">
+              <div className="w-10 h-10 bg-slate-800 border border-slate-700 rounded-xl flex items-center justify-center text-red-600">
                 <BarChart className="w-5 h-5 text-white" />
               </div>
               <div>
@@ -179,7 +179,7 @@ export default function AnalyzedReports() {
                         <p className="text-xs text-muted-foreground mt-1">{report.articleIds.length} articles Â· {report.analysisDate}</p>
                       </div>
                       <div className="flex items-center gap-2">
-                        <button onClick={() => { setCompareArticles(getArticlesForReport(report.articleIds)); setShowCompareModal(true); }} className="px-3 py-1 rounded-lg bg-blue-50 text-blue-700 text-xs font-bold">Open Comparison</button>
+                        <button onClick={() => { setCompareArticles(getArticlesForReport(report.articleIds)); setShowCompareModal(true); }} className="px-3 py-1 rounded-lg bg-red-50 text-red-700 text-xs font-bold">Open Comparison</button>
                       </div>
                     </div>
                     <div className="mt-3 space-y-2">

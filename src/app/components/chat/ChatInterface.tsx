@@ -532,7 +532,7 @@ export default function ChatInterface() {
             <div className="relative ml-2">
               <button
                 onClick={() => setShowUserMenu(!showUserMenu)}
-                className="flex items-center gap-2 px-3 py-2 bg-card border border-border rounded-lg hover:bg-slate-100 hover:border-blue-400 hover:shadow-md hover:scale-105 transition-all shadow-sm"
+                className="flex items-center gap-2 px-3 py-2 bg-card border border-border rounded-lg hover:bg-slate-100 hover:border-red-400 hover:shadow-md hover:scale-105 transition-all shadow-sm"
               >
                 <div className="w-7 h-7 bg-gradient-to-br from-slate-700 to-slate-900 rounded-full flex items-center justify-center text-white text-xs font-bold">
                   {user?.name?.substring(0, 2).toUpperCase() || 'U'}
@@ -625,12 +625,12 @@ export default function ChatInterface() {
                   placeholder="Search articles..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="text-sm bg-slate-800/40 border border-slate-700/50 rounded-xl px-4 py-2 focus:ring-2 focus:ring-blue-600/50 focus:border-blue-500 outline-none text-foreground placeholder:text-slate-500 transition-all shadow-inner w-full sm:w-48"
+                  className="text-sm bg-muted/40 dark:bg-slate-800/40 border border-border dark:border-slate-700/50 rounded-xl px-4 py-2 focus:ring-2 focus:ring-red-600/50 focus:border-red-500 outline-none text-foreground placeholder:text-muted-foreground transition-all shadow-inner w-full sm:w-48"
                 />
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as any)}
-                  className="text-sm bg-slate-800/40 border border-slate-700/50 rounded-xl px-4 py-2 focus:ring-2 focus:ring-blue-600/50 focus:border-blue-500 outline-none text-foreground cursor-pointer transition-all shadow-inner"
+                  className="text-sm bg-muted/40 dark:bg-slate-800/40 border border-border dark:border-slate-700/50 rounded-xl px-4 py-2 focus:ring-2 focus:ring-red-600/50 focus:border-red-500 outline-none text-foreground cursor-pointer transition-all shadow-inner"
                 >
                   <option value="newest">Newest First</option>
                   <option value="oldest">Oldest First</option>
@@ -721,12 +721,12 @@ export default function ChatInterface() {
                               className={`flex-1 flex flex-col bg-muted/80 border border-border/60 rounded-lg p-3 mb-3 transition-colors ${canExpand ? 'cursor-pointer hover:bg-muted/90' : ''}`}
                             >
                               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1 flex items-center gap-1.5 shrink-0">
-                                <AlignLeft className="w-3 h-3 text-red-500" /> Auto-Summary
+                                <AlignLeft className="w-3 h-3 text-red-600" /> Auto-Summary
                               </span>
                               <p className={`text-xs text-foreground/80 leading-relaxed ${isExpanded ? '' : 'line-clamp-2'}`}>
                                 {getShortSummary(article)}
                               </p>
-                              {canExpand && <span className="text-[10px] text-blue-500 font-medium mt-1">{isExpanded ? 'Show less' : 'Show more'}</span>}
+                              {canExpand && <span className="text-[10px] text-red-500 font-medium mt-1">{isExpanded ? 'Show less' : 'Show more'}</span>}
                             </div>
 
                             {isLecturerView && (

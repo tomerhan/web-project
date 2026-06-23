@@ -217,7 +217,7 @@ export default function Comparison({ onNavigate }: ComparisonProps) {
           </div>
         ) : (
           <div className="bg-white rounded-lg border border-slate-200 p-12 text-center">
-            <GitCompare className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+            <GitCompare className="w-16 h-16 text-red-600 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-slate-900 mb-2">No Articles to Compare</h3>
             <p className="text-slate-600 mb-6">Select at least two articles to start comparison</p>
             <button

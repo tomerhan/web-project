@@ -25,7 +25,7 @@ export default function ArticleDetail({ articleId, onNavigate }: ArticleDetailPr
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
-          <FileText className="w-16 h-16 text-slate-400 mx-auto mb-4" />
+          <FileText className="w-16 h-16 text-red-600 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-slate-900">Article Not Found</h2>
           <button
             onClick={() => onNavigate('library')}
@@ -195,7 +195,7 @@ export default function ArticleDetail({ articleId, onNavigate }: ArticleDetailPr
               <div className="flex-1 overflow-y-auto p-6 space-y-6">
                 {messages.length === 0 ? (
                   <div className="text-center py-12">
-                    <MessageSquare className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                    <MessageSquare className="w-16 h-16 text-red-600 mx-auto mb-4" />
                     <h4 className="font-semibold text-slate-900 mb-2">Start a Conversation</h4>
                     <p className="text-sm text-slate-600 mb-6">Ask questions about the research and the bot will answer based on the content</p>
                     <div className="max-w-md mx-auto space-y-2">

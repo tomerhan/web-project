@@ -375,14 +375,14 @@ export default function ChatAnalyzer() {
           <section className="bg-card rounded-2xl shadow-sm border border-border flex flex-col h-[500px] overflow-hidden">
             <div className="bg-card px-5 py-4 border-b border-border flex items-center justify-between flex-shrink-0 gap-4 w-full min-w-0">
               <div className="flex items-center gap-2 shrink-0">
-                <Sparkles className="w-5 h-5 text-slate-600" />
+                <Sparkles className="w-5 h-5 text-red-600" />
                 <span className="font-bold text-foreground">Chat Analyzer</span>
               </div>
 
               {/* Group tabs */}
               <div className="w-0 flex-1 overflow-x-auto overflow-y-hidden py-1 flex items-center gap-1.5 min-w-0 whitespace-nowrap">
                 {isResumedMode && activeGroup ? (
-                  <div className="flex-none px-3 py-1.5 text-xs font-bold rounded-lg transition-all border whitespace-nowrap bg-blue-600 text-white border-blue-600 shadow-md">
+                  <div className="flex-none px-3 py-1.5 text-xs font-bold rounded-lg transition-all border whitespace-nowrap bg-red-600 text-white border-red-600 shadow-md">
                     {activeGroup.name}
                   </div>
                 ) : (
@@ -406,7 +406,7 @@ export default function ChatAnalyzer() {
                 <div className="relative shrink-0">
                   <button
                     onClick={() => setShowStatsMenu((v) => !v)}
-                    className="p-1.5 hover:bg-blue-600 hover:text-white hover:border-blue-600 rounded-lg text-foreground transition-all border border-border shadow-sm"
+                    className="p-1.5 hover:bg-red-600 hover:text-white hover:border-red-600 rounded-lg text-foreground transition-all border border-border shadow-sm"
                     aria-label="Manage article groups"
                   >
                     <MoreVertical className="w-4 h-4" />
@@ -436,7 +436,7 @@ export default function ChatAnalyzer() {
                               <div className="text-sm font-medium text-foreground">{g.name}</div>
                               <div className="text-xs text-muted-foreground">{g.articleIds.length} articles</div>
                             </div>
-                            {activeGroupId === g.id && <Check className="w-4 h-4 text-blue-600" />}
+                            {activeGroupId === g.id && <Check className="w-4 h-4 text-red-600" />}
                           </button>
                         ))}
                       </div>
@@ -448,7 +448,7 @@ export default function ChatAnalyzer() {
 
             {/* Active group context bar */}
             {activeGroup && (
-              <div className="px-5 py-2 border-b border-border bg-blue-50/50 dark:bg-blue-950/20 flex items-center gap-2 flex-wrap">
+              <div className="px-5 py-2 border-b border-border bg-red-50/50 dark:bg-red-950/20 flex items-center gap-2 flex-wrap">
                 <div className="flex items-center gap-3">
                   {editingGroupId === activeGroup.id ? (
                     <div className="flex items-center gap-2">
@@ -463,7 +463,7 @@ export default function ChatAnalyzer() {
                     </div>
                   ) : (
                     <div className="flex items-center gap-2">
-                      <h3 className="font-bold text-blue-700 dark:text-blue-300">{activeGroup.name}</h3>
+                      <h3 className="font-bold text-red-700 dark:text-red-300">{activeGroup.name}</h3>
                       <button onClick={() => { setEditingGroupId(activeGroup.id); setEditingGroupName(activeGroup.name); }} className="p-1 text-muted-foreground" title="Edit group name"><Edit className="w-4 h-4" /></button>
                     </div>
                   )}
@@ -551,7 +551,7 @@ export default function ChatAnalyzer() {
               {messages.map((msg, idx) => (
                 <div key={idx} className="space-y-4 mb-8">
                   <div className="flex justify-end group">
-                    <div className="max-w-[80%] p-4 rounded-2xl rounded-tr-none border border-blue-500/30 bg-blue-50 dark:bg-blue-950/30 backdrop-blur-md shadow-sm dark:shadow-lg">
+                    <div className="max-w-[80%] p-4 rounded-2xl rounded-tr-none border border-red-500/30 bg-red-50 dark:bg-red-950/30 backdrop-blur-md shadow-sm dark:shadow-lg">
                       <p className="text-sm leading-relaxed text-foreground">{msg.question}</p>
                     </div>
                   </div>
@@ -586,9 +586,9 @@ export default function ChatAnalyzer() {
               ))}
               {isTyping && (
                 <div className="flex items-center gap-2 text-muted-foreground px-2">
-                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" />
-                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce [animation-delay:0.2s]" />
-                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce [animation-delay:0.4s]" />
+                  <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-bounce" />
+                  <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-bounce [animation-delay:0.2s]" />
+                  <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-bounce [animation-delay:0.4s]" />
                 </div>
               )}
             </div>
@@ -601,12 +601,12 @@ export default function ChatAnalyzer() {
                   onChange={(e) => setInputMessage(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && send()}
                   placeholder="Ask about methodology, findings, or gaps..."
-                  className="flex-1 px-5 py-3 text-sm bg-muted/40 dark:bg-slate-800/40 border border-border dark:border-slate-700/50 rounded-2xl focus:ring-2 focus:ring-blue-600/50 focus:border-blue-500 outline-none text-foreground placeholder:text-muted-foreground transition-all shadow-inner"
+                  className="flex-1 px-5 py-3 text-sm bg-muted/40 dark:bg-slate-800/40 border border-border dark:border-slate-700/50 rounded-2xl focus:ring-2 focus:ring-red-600/50 focus:border-red-500 outline-none text-foreground placeholder:text-muted-foreground transition-all shadow-inner"
                 />
                 <button
                   onClick={send}
                   disabled={!inputMessage.trim()}
-                  className="p-3 bg-blue-600 text-white rounded-2xl hover:bg-blue-500 hover:shadow-[0_0_15px_rgba(37,99,235,0.4)] disabled:opacity-30 disabled:hover:shadow-none transition-all flex items-center justify-center shrink-0"
+                  className="p-3 bg-red-600 text-white rounded-2xl hover:bg-red-500 hover:shadow-[0_0_15px_rgba(37,99,235,0.4)] disabled:opacity-30 disabled:hover:shadow-none transition-all flex items-center justify-center shrink-0"
                 >
                   <Send className="w-5 h-5" />
                 </button>

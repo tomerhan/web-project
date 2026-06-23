@@ -6,6 +6,7 @@ export interface Article {
   uploadDate: string;
   pdfUrl: string;
   topics: string[];
+  keywords?: string[];
   methodology: string;
   keyFindings: string[];
   citations: number;

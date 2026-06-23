@@ -187,7 +187,7 @@ export default function ComparisonModal({ articles, onClose }: ComparisonModalPr
                 window.dispatchEvent(new CustomEvent('create-chat-from-comparison', { detail }));
                 onClose();
               }}
-              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold mr-2"
+              className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold mr-2"
             >
               Create Chat
             </button>
@@ -232,7 +232,7 @@ export default function ComparisonModal({ articles, onClose }: ComparisonModalPr
         {/* AI Explanation banner */}
         {showExplanation && (
           <div className="mx-6 mt-4 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-xl p-4 flex items-start gap-3 flex-shrink-0">
-            <Info className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+            <Info className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
             <div>
               <p className="text-xs font-bold text-amber-800 mb-1">How AI generated this comparison</p>
               <p className="text-xs text-amber-700 leading-relaxed">{EXPLANATION}</p>
@@ -299,7 +299,7 @@ export default function ComparisonModal({ articles, onClose }: ComparisonModalPr
                       </div>
                       {isBest && (
                         <div className="flex items-center gap-1 bg-amber-400 px-2 py-0.5 rounded-full">
-                          <Star className="w-2.5 h-2.5 text-amber-900 fill-amber-900" />
+                          <Star className="w-2.5 h-2.5 text-red-600 fill-amber-900" />
                           <span className="text-[10px] font-bold text-amber-900 uppercase">Best</span>
                         </div>
                       )}
@@ -308,14 +308,14 @@ export default function ComparisonModal({ articles, onClose }: ComparisonModalPr
                     {/* Numerical Badges */}
                     <div className="grid grid-cols-2 gap-2 mb-4">
                       <div className="flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-lg">
-                        <BookOpen className="w-3.5 h-3.5 text-slate-500" />
+                        <BookOpen className="w-3.5 h-3.5 text-red-600" />
                         <div>
                           <div className="text-[10px] font-bold text-slate-500 uppercase">Citations</div>
                           <div className="text-base font-bold text-slate-900">{scores.citations}</div>
                         </div>
                       </div>
                       <div className="flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-lg">
-                        <Award className="w-3.5 h-3.5 text-slate-500" />
+                        <Award className="w-3.5 h-3.5 text-red-600" />
                         <div>
                           <div className="text-[10px] font-bold text-slate-500 uppercase">Impact</div>
                           <div className="text-base font-bold text-slate-900">{scores.impactFactor}</div>
@@ -374,7 +374,7 @@ export default function ComparisonModal({ articles, onClose }: ComparisonModalPr
                       >
                         {idx === bestMatchIdx && (
                           <div className="flex items-center gap-1 mb-2">
-                            <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                            <Star className="w-3.5 h-3.5 text-red-600 fill-amber-500" />
                             <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider">Best Match</span>
                           </div>
                         )}
@@ -436,8 +436,8 @@ export default function ComparisonModal({ articles, onClose }: ComparisonModalPr
                   <div className="flex items-center justify-between px-4 py-3">
                     <span className="font-bold text-slate-800 text-sm">{insight.label}</span>
                     {activeInsight === idx
-                      ? <ChevronUp className="w-4 h-4 text-slate-400" />
-                      : <ChevronDown className="w-4 h-4 text-slate-400" />
+                      ? <ChevronUp className="w-4 h-4 text-red-600" />
+                      : <ChevronDown className="w-4 h-4 text-red-600" />
                     }
                   </div>
                   {activeInsight === idx && (
