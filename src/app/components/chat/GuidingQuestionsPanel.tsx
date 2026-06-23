@@ -52,7 +52,7 @@ export default function GuidingQuestionsPanel({
     <div className="w-80 lg:w-96 bg-card border-l border-border flex flex-col h-full shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.05)] z-20 overflow-hidden absolute right-0 top-0">
       <div className="p-4 border-b border-border flex items-center justify-between bg-muted/50">
         <h2 className="font-bold text-foreground flex items-center gap-2 text-base">
-          <Sparkles className="w-5 h-5 text-slate-600" />
+          <Sparkles className="w-5 h-5 text-red-600" />
           Guiding Questions
         </h2>
         <button onClick={onClose} className="text-muted-foreground hover:text-foreground p-1.5 rounded-lg transition-colors">
@@ -74,7 +74,7 @@ export default function GuidingQuestionsPanel({
                   className="absolute top-3 right-3 text-muted-foreground hover:text-gray-600 hover:bg-gray-50 transition-all bg-card rounded-md p-1.5 shadow-sm border border-border flex items-center justify-center"
                   title="Delete question"
                 >
-                  <Trash2 className="w-3.5 h-3.5 text-slate-600" />
+                  <Trash2 className="w-3.5 h-3.5 text-red-600" />
                 </button>
               </div>
             ))}
@@ -124,7 +124,7 @@ export default function GuidingQuestionsPanel({
         {/* Practice Q&A — ask anything, get guided answer to build knowledge */}
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <Lightbulb className="w-4 h-4 text-amber-500" />
+            <Lightbulb className="w-4 h-4 text-red-600" />
             <h3 className="font-bold text-foreground text-sm">Practice Q&amp;A</h3>
           </div>
           <p className="text-xs text-muted-foreground mb-3 leading-relaxed">

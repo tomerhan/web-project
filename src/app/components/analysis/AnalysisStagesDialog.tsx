@@ -85,7 +85,7 @@ export default function AnalysisStagesDialog({ type, onClose, onComplete }: Anal
         {/* Header */}
         <div className="px-5 py-4 border-b border-border flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-slate-600" />
+            <Sparkles className="w-5 h-5 text-red-600" />
             <h3 className="font-bold text-foreground">
               {type === 'compare' ? 'Comparing Documents' : 'Analyzing Document'}
             </h3>
@@ -147,9 +147,9 @@ export default function AnalysisStagesDialog({ type, onClose, onComplete }: Anal
                     {isCompleted ? (
                       <CheckCircle2 className="w-5 h-5 text-emerald-500" />
                     ) : isActive ? (
-                      <Loader2 className="w-5 h-5 text-slate-600 animate-spin" />
+                      <Loader2 className="w-5 h-5 text-red-600 animate-spin" />
                     ) : (
-                      <Circle className="w-5 h-5 text-slate-300" />
+                      <Circle className="w-5 h-5 text-red-600" />
                     )}
                   </div>
                   <div>
@@ -168,7 +168,7 @@ export default function AnalysisStagesDialog({ type, onClose, onComplete }: Anal
             className={`bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-xl p-4 transition-opacity duration-300 ${triviaVisible ? 'opacity-100' : 'opacity-0'}`}
           >
             <div className="flex items-start gap-2">
-              <Lightbulb className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+              <Lightbulb className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
               <div>
                 <p className="text-[11px] font-bold text-amber-700 uppercase tracking-wider mb-1">
                   Did you know?

@@ -58,7 +58,7 @@ export default function Sidebar({ mobileSidebarOpen, onMobileSidebarClose }: Sid
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-3 space-y-1 overflow-y-auto bg-gradient-to-b from-red-900/5 via-background to-background [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+      <nav className="flex-1 p-3 space-y-1 overflow-y-auto bg-gradient-to-b from-red-900/20 via-slate-900 to-slate-900 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         {navItems.map((item) => {
           const active = isActive(item.path);
           return (
@@ -71,12 +71,12 @@ export default function Sidebar({ mobileSidebarOpen, onMobileSidebarClose }: Sid
     ? 'w-11 h-11 justify-center rounded-xl' 
     : 'w-full px-3 py-2.5 rounded-xl text-left' 
 } ${
-  active 
-    ? 'bg-blue-600 text-white shadow-md shadow-blue-900/20' 
-    : 'text-foreground hover:bg-muted/50 dark:hover:bg-muted/30 transition-all'
+  active
+    ? 'bg-red-600 text-white shadow-md shadow-red-900/20'
+    : 'text-slate-300 hover:bg-slate-800 transition-all'
 }`}
             >
-              <item.icon className="w-5 h-5 flex-shrink-0" />
+              <item.icon className={`w-5 h-5 flex-shrink-0 ${active ? 'text-white' : 'text-red-600'}`} />
               {(forMobile || !collapsed) && (
                 <span className="text-sm font-medium truncate">{item.label}</span>
               )}
@@ -129,7 +129,7 @@ export default function Sidebar({ mobileSidebarOpen, onMobileSidebarClose }: Sid
         {/* Collapse toggle â€” desktop only */}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="hidden md:flex items-center justify-center p-2 text-muted-foreground hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded-lg border border-transparent hover:border-border"
+          className="hidden md:flex items-center justify-center p-2 text-slate-400 hover:text-white hover:bg-slate-800 transition-colors rounded-lg border border-transparent hover:border-slate-700"
         >
           {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
         </button>

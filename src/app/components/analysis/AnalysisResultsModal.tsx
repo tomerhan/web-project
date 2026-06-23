@@ -98,7 +98,7 @@ export default function AnalysisResultsModal({ articles, depth, onClose }: Analy
             ) : (
               <>
                 <div className="flex items-start gap-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800">
-                  <CheckCircle2 className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+                  <CheckCircle2 className="w-5 h-5 text-red-600 dark:text-red-600 mt-0.5 shrink-0" />
                   <div className="text-xs text-amber-800 dark:text-amber-200">
                     Charts and detailed data are visible to your lecturer only. Continue practicing in the Research Chat.
                   </div>
@@ -129,113 +129,23 @@ export default function AnalysisResultsModal({ articles, depth, onClose }: Analy
     );
   }
 
-  // Lecturer view continues below with full charts.
+  // ─── Lecturer view ───
+  // All dashboard data is computed server-side and returned by the backend
+  // (`/api/papers/analysis`). Until it arrives — or if the server returned a
+  // non-lecturer shape — show a loading card. Everything below reads from the
+  // server payload, not from the raw `articles` prop.
+  if (loading || !payload || !isLecturerPayload(payload)) {
+    return (
+      <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="bg-card w-full max-w-md rounded-2xl shadow-2xl border border-border p-8 text-center">
+          <div className="text-sm text-muted-foreground">Generating analysis…</div>
+        </div>
+      </div>
+    );
+  }
 
-  /* ─── Calculate Statistics ───
-   * Everything below is derived synchronously from the `articles` prop.
-   * No API call: the charts are computed client-side from paper metadata. */
-  const totalCitations = articles.reduce((sum, a) => sum + a.citations, 0); // sum of all citations
-  const avgCitations = Math.round(totalCitations / articles.length);        // mean per paper
-  const totalArticles = articles.length;
-
-  // Year distribution: count how many papers were published each year.
-  // Shape: { 2021: 3, 2022: 5, ... } -> later turned into sorted chart rows.
-  const yearCounts = articles.reduce((acc, a) => {
-    acc[a.year] = (acc[a.year] || 0) + 1;
-    return acc;
-  }, {} as Record<number, number>);
-
-  const yearData = Object.entries(yearCounts)
-    .map(([year, count]) => ({ year: parseInt(year), count }))
-    .sort((a, b) => a.year - b.year);
-
-  // Topics frequency: tally every topic tag across all papers, keep the top 6.
-  // Feeds the horizontal "Most Frequent Research Topics" bar chart.
-  const topicCounts = articles.reduce((acc, a) => {
-    a.topics.forEach(topic => {
-      acc[topic] = (acc[topic] || 0) + 1;
-    });
-    return acc;
-  }, {} as Record<string, number>);
-
-  const topicData = Object.entries(topicCounts)
-    .map(([topic, count]) => ({ topic, count }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 6);
-
-  // Methodology breakdown: bucket each paper's methodology string into one of
-  // four coarse categories by keyword matching. Feeds the pie chart.
-  const methodCounts = articles.reduce((acc, a) => {
-    const method = a.methodology.includes('survey') || a.methodology.includes('literature')
-      ? 'Literature Review'
-      : a.methodology.includes('experimental') || a.methodology.includes('analysis')
-      ? 'Experimental'
-      : a.methodology.includes('quantitative')
-      ? 'Quantitative'
-      : 'Qualitative';
-    acc[method] = (acc[method] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
-
-  const methodData = Object.entries(methodCounts).map(([name, value]) => ({ name, value }));
-
-  // Citation distribution: one row per paper, sorted most-cited first.
-  // Feeds the "Citation Distribution by Paper" vertical bar chart.
-  const citationData = articles
-    .map((a, idx) => ({
-      name: `Paper ${idx + 1}`,
-      citations: a.citations,
-      title: a.title.substring(0, 30) + '...'
-    }))
-    .sort((a, b) => b.citations - a.citations);
-
-  // Quality metrics: 5 synthetic 0-100 scores for the radar chart. Each is a
-  // rough heuristic (impact, recency, topic coverage, chosen depth, plus a
-  // randomized "consistency"). These are illustrative, not real measurements.
-  const qualityMetrics = [
-    {
-      metric: 'Avg Impact',
-      score: Math.min(100, avgCitations / 5)
-    },
-    {
-      metric: 'Recency',
-      score: Math.min(100, ((Math.max(...articles.map(a => a.year)) - 2020) / 6) * 100)
-    },
-    {
-      metric: 'Coverage',
-      score: Math.min(100, (Object.keys(topicCounts).length / 10) * 100)
-    },
-    {
-      metric: 'Depth',
-      score: depth === 'Deep' ? 95 : depth === 'Regular' ? 75 : 50
-    },
-    {
-      metric: 'Consistency',
-      score: 70 + Math.random() * 25
-    }
-  ];
-
-  // Key insights: 4 human-readable summary blurbs built from the stats above
-  // (publication trend, dominant topic, methodology mix, citation impact).
-  // Rendered as collapsible cards at the bottom of the dashboard.
-  const insights = [
-    {
-      title: 'Publication Trend',
-      description: `${Math.round((yearData[yearData.length - 1]?.count || 0) / (yearData[0]?.count || 1) * 100)}% increase in publications over the analyzed period, indicating growing research interest.`
-    },
-    {
-      title: 'Dominant Topics',
-      description: `"${topicData[0]?.topic}" appears most frequently (${topicData[0]?.count}Ã— across papers), suggesting it's a central theme in your corpus.`
-    },
-    {
-      title: 'Methodology Balance',
-      description: `${methodData.length} distinct research methodologies identified. ${methodData[0]?.name} approach is most common (${Math.round((methodData[0]?.value / totalArticles) * 100)}%).`
-    },
-    {
-      title: 'Citation Impact',
-      description: `Average ${avgCitations} citations per paper. Top paper has ${Math.max(...articles.map(a => a.citations))} citations, ${Math.round((Math.max(...articles.map(a => a.citations)) / avgCitations - 1) * 100)}% above average.`
-    }
-  ];
+  const { stats, citationData, qualityMetrics, yearData, methodData, topicData, insights } = payload;
+  const { totalArticles, avgCitations, totalCitations, uniqueTopics } = stats;
 
   // Export is a stub: shows a toast only, no real file is generated yet.
   const handleExport = (format: 'pdf' | 'excel') => {
@@ -304,7 +214,7 @@ export default function AnalysisResultsModal({ articles, depth, onClose }: Analy
         {/* AI Explanation banner */}
         {showExplanation && (
           <div className="mx-6 mt-4 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-xl p-4 flex items-start gap-3 flex-shrink-0">
-            <Info className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+            <Info className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
             <div>
               <p className="text-xs font-bold text-amber-800 mb-1">How AI generated this analysis</p>
               <p className="text-xs text-amber-700 leading-relaxed">{EXPLANATION}</p>
@@ -322,7 +232,7 @@ export default function AnalysisResultsModal({ articles, depth, onClose }: Analy
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-gradient-to-br from-red-50 to-red-100 border-2 border-red-200 rounded-xl p-4">
               <div className="flex items-center justify-between mb-2">
-                <FileText className="w-5 h-5 text-slate-600" />
+                <FileText className="w-5 h-5 text-red-600" />
                 <span className="text-[10px] font-bold text-red-600 uppercase tracking-wider">Total</span>
               </div>
               <div className="text-3xl font-bold text-red-900 mb-1">{totalArticles}</div>
@@ -331,20 +241,20 @@ export default function AnalysisResultsModal({ articles, depth, onClose }: Analy
 
             <div className="bg-gradient-to-br from-amber-50 to-amber-100 border-2 border-amber-200 rounded-xl p-4">
               <div className="flex items-center justify-between mb-2">
-                <BookOpen className="w-5 h-5 text-amber-600" />
+                <BookOpen className="w-5 h-5 text-red-600" />
                 <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider">Average</span>
               </div>
               <div className="text-3xl font-bold text-amber-900 mb-1">{avgCitations}</div>
               <div className="text-xs font-medium text-amber-700">Citations/Paper</div>
             </div>
 
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 rounded-xl p-4">
+            <div className="bg-gradient-to-br from-red-50 to-red-100 border-2 border-red-200 rounded-xl p-4">
               <div className="flex items-center justify-between mb-2">
-                <Hash className="w-5 h-5 text-blue-600" />
-                <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Total</span>
+                <Hash className="w-5 h-5 text-red-600" />
+                <span className="text-[10px] font-bold text-red-600 uppercase tracking-wider">Total</span>
               </div>
-              <div className="text-3xl font-bold text-blue-900 mb-1">{totalCitations}</div>
-              <div className="text-xs font-medium text-blue-700">Citations Sum</div>
+              <div className="text-3xl font-bold text-red-900 mb-1">{totalCitations}</div>
+              <div className="text-xs font-medium text-red-700">Citations Sum</div>
             </div>
 
             <div className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-200 rounded-xl p-4">
@@ -352,7 +262,7 @@ export default function AnalysisResultsModal({ articles, depth, onClose }: Analy
                 <Layers className="w-5 h-5 text-green-600" />
                 <span className="text-[10px] font-bold text-green-600 uppercase tracking-wider">Topics</span>
               </div>
-              <div className="text-3xl font-bold text-green-900 mb-1">{Object.keys(topicCounts).length}</div>
+              <div className="text-3xl font-bold text-green-900 mb-1">{uniqueTopics}</div>
               <div className="text-xs font-medium text-green-700">Unique Topics</div>
             </div>
           </div>
@@ -483,8 +393,8 @@ export default function AnalysisResultsModal({ articles, depth, onClose }: Analy
                   <div className="flex items-center justify-between px-4 py-3">
                     <span className="font-bold text-slate-800 text-sm">{insight.title}</span>
                     {activeSection === idx
-                      ? <ChevronUp className="w-4 h-4 text-slate-400" />
-                      : <ChevronDown className="w-4 h-4 text-slate-400" />
+                      ? <ChevronUp className="w-4 h-4 text-red-600" />
+                      : <ChevronDown className="w-4 h-4 text-red-600" />
                     }
                   </div>
                   {activeSection === idx && (

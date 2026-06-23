@@ -1,54 +1,56 @@
-// Role-aware analysis service. Frontend mock today; swap body to Firebase/HTTP later.
-// Contract preserved: callers get role-shaped DTOs, never the raw record.
+// Role-aware analysis service. Calls the real backend, which inspects the
+// authenticated user's role and returns either a lightweight receipt (student)
+// or the full server-computed dashboard payload (lecturer).
+import api from './api';
 import { Article } from '../data/mockData';
 
 export interface StudentAnalysisReceipt {
   id: string;
+  role: 'student';
   status: 'ready' | 'pending' | 'failed';
   createdAt: string;
-  serverLink: string;
+  depth: 'Fast' | 'Regular' | 'Deep';
+}
+
+export interface AnalysisStats {
+  totalArticles: number;
+  avgCitations: number;
+  totalCitations: number;
+  uniqueTopics: number;
 }
 
 export interface LecturerAnalysisPayload {
   id: string;
+  role: 'lecturer';
   status: 'ready' | 'pending' | 'failed';
   createdAt: string;
-  articles: Article[];
   depth: 'Fast' | 'Regular' | 'Deep';
-  chartsSignedUrl: string;
+  stats: AnalysisStats;
+  citationData: { name: string; citations: number; title: string }[];
+  qualityMetrics: { metric: string; score: number }[];
+  yearData: { year: number; count: number }[];
+  methodData: { name: string; value: number }[];
+  topicData: { topic: string; count: number }[];
+  insights: { title: string; description: string }[];
 }
 
 export type Role = 'student' | 'lecturer';
 
-// Real backend: replace with `await fetch('/api/analyses/' + id, { headers: authHeader })`.
-// Server inspects auth token's role claim and returns the correct DTO.
+// Server inspects the auth token's role claim and returns the correct DTO.
+// `role` is kept for the caller's convenience but the server is authoritative.
 export async function getAnalysis(
-  id: string,
-  role: Role,
+  _id: string,
+  _role: Role,
   articles: Article[],
   depth: 'Fast' | 'Regular' | 'Deep'
 ): Promise<StudentAnalysisReceipt | LecturerAnalysisPayload> {
-  const createdAt = new Date().toISOString();
-  if (role === 'student') {
-    return {
-      id,
-      status: 'ready',
-      createdAt,
-      serverLink: `/api/analyses/${id}/receipt`,
-    };
-  }
-  return {
-    id,
-    status: 'ready',
-    createdAt,
-    articles,
-    depth,
-    chartsSignedUrl: `/api/analyses/${id}/charts?token=mock-signed-${Date.now()}`,
-  };
+  const paperIds = articles.map((a) => a.id);
+  const response = await api.post('/papers/analysis', { paperIds, depth });
+  return response.data as StudentAnalysisReceipt | LecturerAnalysisPayload;
 }
 
 export function isLecturerPayload(
   p: StudentAnalysisReceipt | LecturerAnalysisPayload
 ): p is LecturerAnalysisPayload {
-  return 'chartsSignedUrl' in p;
+  return p.role === 'lecturer';
 }

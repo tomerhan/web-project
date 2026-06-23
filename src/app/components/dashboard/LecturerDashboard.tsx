@@ -153,9 +153,9 @@ export default function LecturerDashboard() {
                   title="Display Mode"
                 >
                   {theme === 'dark' ? (
-                    <Sun className="w-3 h-3 text-yellow-500" />
+                    <Sun className="w-3 h-3 text-red-600" />
                   ) : (
-                    <Moon className="w-3 h-3 text-blue-600" />
+                    <Moon className="w-3 h-3 text-red-600" />
                   )}
                 </button>
               </div>
@@ -165,7 +165,7 @@ export default function LecturerDashboard() {
           {/* Stats Overview */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="bg-card border border-border p-6 rounded-2xl shadow-sm flex items-center gap-4">
-              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-xl">
+              <div className="p-4 bg-red-50 dark:bg-red-900/20 text-red-600 rounded-xl">
                 <Users className="w-6 h-6" />
               </div>
               <div>
@@ -243,7 +243,7 @@ export default function LecturerDashboard() {
                   <div key={student.id} className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 transition-all rounded-lg">
                     
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center font-bold text-slate-600 dark:text-slate-300 text-lg border border-border">
+                      <div className="w-12 h-12 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center font-bold text-red-600 dark:text-red-600 text-lg border border-border">
                         {student.name.charAt(0)}
                       </div>
                       <div>
@@ -273,7 +273,7 @@ export default function LecturerDashboard() {
                       {/* This button sends the lecturer to view the student's research */}
                       <button 
                         onClick={() => navigate(`/student/${student.id}`)}
-                        className="flex items-center gap-4 px-6 py-5 rounded-xl transition-all text-left border-2 border-slate-300 bg-slate-50 dark:bg-slate-700 text-foreground dark:border-slate-400 hover:bg-blue-600 hover:text-white hover:border-blue-500 hover:shadow-xl hover:scale-105"
+                        className="flex items-center gap-4 px-6 py-5 rounded-xl transition-all text-left border-2 border-slate-300 bg-slate-50 dark:bg-slate-700 text-foreground dark:border-slate-400 hover:bg-red-600 hover:text-white hover:border-red-500 hover:shadow-xl hover:scale-105"
                       >
                         View Work <ArrowRight className="w-4 h-4" />
                       </button>

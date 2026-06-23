@@ -78,7 +78,7 @@ export default function SinglePDFViewer({ article, onClose }: SinglePDFViewerPro
             />
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-muted rounded-lg border border-border">
-              <FileText className="w-16 h-16 text-slate-400 mb-4" />
+              <FileText className="w-16 h-16 text-red-600 mb-4" />
               <h3 className="text-xl font-bold text-foreground mb-2">No PDF File Available</h3>
               <p className="text-sm text-muted-foreground max-w-md">
                 This article was created manually or before real PDF uploads were enabled. There is no PDF document hosted for this paper.

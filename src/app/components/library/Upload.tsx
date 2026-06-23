@@ -76,7 +76,7 @@ export default function Upload({ onNavigate }: UploadProps) {
              onDragLeave={handleDragLeave}
              onDrop={handleDrop}
              style={{ borderColor: isDragging ? '#10b981' : undefined, backgroundColor: isDragging ? '#f0fdf4' : undefined }}>
-          <UploadIcon className="w-16 h-16 text-slate-400 mx-auto mb-4" />
+          <UploadIcon className="w-16 h-16 text-red-600 mx-auto mb-4" />
           <h3 className="text-xl font-semibold text-foreground mb-2">Drag PDF files here</h3>
           <p className="text-muted-foreground mb-4">or click to select files from your computer</p>
           <label className="inline-block px-6 py-3 bg-emerald-600 text-card rounded-lg hover:bg-emerald-700 transition-colors cursor-pointer">
