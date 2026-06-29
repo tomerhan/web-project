@@ -3,6 +3,7 @@ import { Send, Sparkles, FileText, MessageSquare, MoreVertical, BookmarkPlus, Ch
 import { ChatMessage, Article } from '../../data/mockData';
 import { getPapers } from '../../services/paperService';
 import { startOrResumeChat, sendChatMessage, mapMessagesToFrontend } from '../../services/chatService';
+import { getMyProgress, toScoreMap } from '../../services/progressService';
 import { toast } from 'sonner';
 
 /*
@@ -67,11 +68,18 @@ export default function ChatAnalyzer() {
     toast.success(`Group "${g.name}" created`);
   };
 
-  // Comprehension score: 12% per message, capped at 100. Heuristic gamification
-  // number for now; replaced by a real per-paper assessment in a later phase.
+  // Real per-paper comprehension, scored server-side by the LLM judge and
+  // persisted in Progress. Loaded on mount and refreshed after each message.
+  const [progressByPaper, setProgressByPaper] = useState<Record<string, number>>({});
+  useEffect(() => {
+    getMyProgress()
+      .then((items) => setProgressByPaper(toScoreMap(items)))
+      .catch((e) => console.error('Failed to load comprehension progress:', e));
+  }, []);
+
   const comprehensionPercent = useMemo(
-    () => Math.min(100, messages.length * 12),
-    [messages.length]
+    () => (activeArticleId ? progressByPaper[activeArticleId] ?? 0 : 0),
+    [activeArticleId, progressByPaper]
   );
 
   // Celebration toast: fire once when hitting 100%; reset the latch below 100.
@@ -224,6 +232,11 @@ export default function ChatAnalyzer() {
       const updatedSession = await sendChatMessage(chatId, text);
       const mapped = mapMessagesToFrontend(updatedSession.messages, activeArticleId);
       setMessages(mapped);
+      // Live-update the comprehension bar with the freshly scored progress.
+      if (updatedSession.progress && activeArticleId) {
+        const pid = activeArticleId;
+        setProgressByPaper((prev) => ({ ...prev, [pid]: updatedSession.progress!.score }));
+      }
     } catch (err) {
       console.error('Failed to send message:', err);
       toast.error('Failed to get response from Socratic bot');

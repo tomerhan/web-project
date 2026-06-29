@@ -12,6 +12,8 @@ export interface ChatSession {
     createdAt?: string;
   }>;
   status: 'active' | 'completed';
+  // Present on sendChatMessage responses: the freshly computed comprehension.
+  progress?: { score: number; understandingLevel: 'low' | 'medium' | 'high' | 'excellent' };
 }
 
 /**
