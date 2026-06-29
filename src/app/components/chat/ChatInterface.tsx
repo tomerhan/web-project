@@ -785,6 +785,19 @@ export default function ChatInterface() {
                 </div>
               );
             })()}
+
+            {/* Analyze — moved here, directly under the existing papers */}
+            {!isLecturerView && (
+              <div className="mt-5 pt-4 border-t border-border flex justify-end">
+                <button
+                  onClick={() => setAnalysisType('analyze')}
+                  disabled={selectedArticles.size === 0}
+                  className="md:px-8 py-3.5 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900 hover:border-slate-600 hover:shadow-lg hover:scale-105 transition-all disabled:opacity-50"
+                >
+                  Analyze {selectedArticles.size > 0 && `(${selectedArticles.size})`}
+                </button>
+              </div>
+            )}
           </section>
 
           {/* ═══ Guided Questions — primary tool to sharpen understanding ═══ */}
@@ -802,8 +815,8 @@ export default function ChatInterface() {
             <div className="bg-card border border-border rounded-2xl shadow-sm p-4 flex flex-col md:flex-row items-center gap-5">
               <div className="flex-1 w-full bg-muted border border-border p-3.5 rounded-2xl flex items-center gap-4">
                 <div className="flex flex-col flex-shrink-0">
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase">Difficulty</span>
-                  <span className="text-sm font-bold text-foreground">{getDepthLabel(chatDepth)}</span>
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase">Questions Difficulty</span>
+                  <span className="text-sm font-bold text-foreground">{chatDepth === 1 ? 'Easy' : chatDepth === 2 ? 'Medium' : 'Hard'}</span>
                 </div>
                 <div className="w-px h-7 bg-border" />
                 <div className="flex-1 relative pt-5 pb-1">
@@ -814,7 +827,7 @@ export default function ChatInterface() {
                     className="w-full h-2 bg-slate-300 rounded-lg appearance-none cursor-pointer accent-red-600"
                   />
                   <div className="absolute top-0 left-0 w-full flex justify-between text-[10px] font-bold text-muted-foreground uppercase">
-                    <span>Fast</span><span>Regular</span><span>Deep</span>
+                    <span>Easy</span><span>Medium</span><span>Hard</span>
                   </div>
                 </div>
               </div>
@@ -854,13 +867,6 @@ export default function ChatInterface() {
             </div>
 
             <div className="flex items-center gap-3 w-full md:w-auto">
-              <button
-                onClick={() => setAnalysisType('analyze')}
-                disabled={selectedArticles.size === 0}
-                className="flex-1 md:px-8 py-3.5 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900 hover:border-slate-600 hover:shadow-lg hover:scale-105 transition-all disabled:opacity-50"
-              >
-                Analyze {selectedArticles.size > 0 && `(${selectedArticles.size})`}
-              </button>
               <button
                 onClick={() => setAnalysisType('compare')}
                 disabled={selectedArticles.size < 2}
