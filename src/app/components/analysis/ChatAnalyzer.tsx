@@ -67,28 +67,11 @@ export default function ChatAnalyzer() {
     toast.success(`Group "${g.name}" created`);
   };
 
-  // Demo override â€” when an analyze completes elsewhere, force the bar to 100% so the celebration effect is visible
-  const [demoForce100, setDemoForce100] = useState<boolean>(() => {
-    try { return localStorage.getItem('demo-comprehension-100') === '1'; } catch { return false; }
-  });
-  useEffect(() => {
-    const onForce = () => setDemoForce100(true);
-    window.addEventListener('comprehension-demo-100', onForce);
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === 'demo-comprehension-100' && e.newValue === '1') setDemoForce100(true);
-    };
-    window.addEventListener('storage', onStorage);
-    return () => {
-      window.removeEventListener('comprehension-demo-100', onForce);
-      window.removeEventListener('storage', onStorage);
-    };
-  }, []);
-
-  // Comprehension score: 12% per message, capped at 100 (or forced to 100 by
-  // the demo override). Purely a gamification number, not a real assessment.
+  // Comprehension score: 12% per message, capped at 100. Heuristic gamification
+  // number for now; replaced by a real per-paper assessment in a later phase.
   const comprehensionPercent = useMemo(
-    () => (demoForce100 ? 100 : Math.min(100, messages.length * 12)),
-    [messages.length, demoForce100]
+    () => Math.min(100, messages.length * 12),
+    [messages.length]
   );
 
   // Celebration toast: fire once when hitting 100%; reset the latch below 100.
@@ -140,21 +123,28 @@ export default function ChatAnalyzer() {
         const data = await getPapers();
         setAllArticles(data);
 
-        // If groups are empty or we want to initialize default groups from DB
-        const raw = localStorage.getItem('analysis_groups_v1');
-        if (!raw) {
-          if (data.length >= 5) {
-            setGroups([
-              { id: 'g1', name: 'AI & NLP Research', articleIds: [data[0].id, data[1].id, data[3].id] },
-              { id: 'g2', name: 'Climate & Energy', articleIds: [data[2].id, data[4].id] },
-            ]);
-            setActiveGroupId('g1');
-          } else if (data.length > 0) {
-            setGroups([
-              { id: 'g1', name: 'My Research', articleIds: data.map(p => p.id) }
-            ]);
-            setActiveGroupId('g1');
+        // Rehydrate saved groups first; only seed a default group if none exist.
+        const validIds = new Set(data.map((p) => p.id));
+        let restored: ArticleGroup[] = [];
+        try {
+          const raw = localStorage.getItem('analysis_groups_v1');
+          if (raw) {
+            const parsed = JSON.parse(raw) as ArticleGroup[];
+            // Drop stale article ids that no longer exist in the DB.
+            restored = (Array.isArray(parsed) ? parsed : [])
+              .map((g) => ({ ...g, articleIds: g.articleIds.filter((id) => validIds.has(id)) }))
+              .filter((g) => g.articleIds.length > 0);
           }
+        } catch { /* corrupt storage — fall through to defaults */ }
+
+        if (restored.length > 0) {
+          setGroups(restored);
+          setActiveGroupId(restored[0].id);
+        } else if (data.length > 0) {
+          // First visit (or nothing valid stored): seed one group with all papers.
+          const seed: ArticleGroup = { id: 'g1', name: 'My Research', articleIds: data.map((p) => p.id) };
+          setGroups([seed]);
+          setActiveGroupId('g1');
         }
       } catch (error) {
         console.error('Failed to load papers in ChatAnalyzer:', error);
@@ -292,7 +282,13 @@ export default function ChatAnalyzer() {
       {!chatCreated && (
         <div className="bg-card border-t border-border px-5 h-26.5 flex items-center shadow-lg">
           <div className="max-w-6xl mx-auto w-full flex items-center gap-4">
-            <div className="text-sm font-medium text-foreground">{activeGroup ? `${activeGroup.articleIds.length} article${activeGroup.articleIds.length !== 1 ? 's' : ''} selected` : 'No articles selected'}</div>
+            <div className="text-sm font-medium text-foreground">{
+              allArticles.length === 0
+                ? 'No articles yet — upload one in Library'
+                : activeGroup
+                  ? `${activeGroup.articleIds.length} article${activeGroup.articleIds.length !== 1 ? 's' : ''} selected`
+                  : 'No articles selected — open the ⋮ menu to pick'
+            }</div>
             <div className="flex-1">
               <div className="text-[11px] text-muted-foreground mb-1 font-semibold uppercase tracking-wide">Difficulty</div>
               <input
