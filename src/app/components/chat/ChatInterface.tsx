@@ -361,6 +361,22 @@ export default function ChatInterface() {
     setSaveName('');
   };
 
+  // Open the selected articles as a chat in the Chat Analyzer. Hands the
+  // selection over via the resumed-session keys that ChatAnalyzer reads on mount.
+  const openInChatAnalyzer = () => {
+    const ids = Array.from(selectedArticles);
+    if (ids.length === 0) {
+      toast.error('Select at least one article first');
+      return;
+    }
+    try {
+      localStorage.setItem('resumed_session_id', `rc-${Date.now()}`);
+      localStorage.setItem('resumed_session_article_ids', JSON.stringify(ids));
+      localStorage.setItem('resumed_session_name', 'Research Chat Selection');
+    } catch { /* ignore */ }
+    navigate('/chat-analyzer');
+  };
+
   // Real per-paper comprehension, scored server-side by the LLM judge and stored
   // in Progress. For a lecturer viewing /student/:id we load that student; for a
   // student's own view we load their own progress.
@@ -818,6 +834,13 @@ export default function ChatInterface() {
                 className="flex-1 md:px-8 py-3.5 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 hover:border-red-800 hover:shadow-lg hover:scale-105 transition-all disabled:opacity-50"
               >
                 Compare
+              </button>
+              <button
+                onClick={openInChatAnalyzer}
+                disabled={selectedArticles.size === 0}
+                className="flex-1 md:px-8 py-3.5 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 hover:shadow-lg hover:scale-105 transition-all disabled:opacity-50"
+              >
+                Create Chat {selectedArticles.size > 0 && `(${selectedArticles.size})`}
               </button>
             </div>
           </div>
