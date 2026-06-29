@@ -4,11 +4,18 @@ import {
   LayoutGrid, List, BookOpen, Star, ChevronDown, ChevronUp, Check, Sparkles, Trash2, Loader2
 } from 'lucide-react';
 import { Article } from '../../data/mockData';
-import { getPapers, uploadPaper, deletePaper, getSuggestionsForPapers, PaperSuggestion } from '../../services/paperService';
+import { getPapers, uploadPaper, deletePaper, getSuggestions, PaperSuggestion } from '../../services/paperService';
 import { toast } from 'sonner';
 import ArticleIcon from '../ui/ArticleIcon';
 
 type ViewMode = 'grid' | 'list';
+const TARGET_SUGGESTIONS = 10;
+
+type SuggestionBundle = {
+  paperId: string;
+  limit: number;
+  suggestions: PaperSuggestion[];
+};
 
 export default function Library() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -59,6 +66,49 @@ export default function Library() {
     });
   };
 
+  const buildSuggestionLimits = (selectedPaperIds: string[]) => {
+    const selectedArticles = selectedPaperIds
+      .map((paperId) => articles.find((article) => article.id === paperId))
+      .filter((article): article is Article => Boolean(article));
+
+    const sortedSelected = [...selectedArticles].sort((a, b) => b.citations - a.citations);
+    const baseLimit = Math.floor(TARGET_SUGGESTIONS / Math.max(1, sortedSelected.length));
+    const remainder = TARGET_SUGGESTIONS % Math.max(1, sortedSelected.length);
+    const bonusPaperId = sortedSelected[0]?.id;
+
+    return selectedPaperIds.map((paperId) => ({
+      paperId,
+      limit: baseLimit + (paperId === bonusPaperId ? remainder : 0),
+    }));
+  };
+
+  const mergeSuggestionResults = (bundles: SuggestionBundle[]) => {
+    const seen = new Set<string>();
+    const merged: PaperSuggestion[] = [];
+
+    const addSuggestion = (suggestion: PaperSuggestion) => {
+      if (seen.has(suggestion.externalId)) return;
+      seen.add(suggestion.externalId);
+      merged.push(suggestion);
+    };
+
+    for (const bundle of bundles) {
+      bundle.suggestions.slice(0, bundle.limit).forEach(addSuggestion);
+    }
+
+    if (merged.length < TARGET_SUGGESTIONS) {
+      for (const bundle of bundles) {
+        for (const suggestion of bundle.suggestions) {
+          if (merged.length >= TARGET_SUGGESTIONS) break;
+          addSuggestion(suggestion);
+        }
+        if (merged.length >= TARGET_SUGGESTIONS) break;
+      }
+    }
+
+    return merged.slice(0, TARGET_SUGGESTIONS).sort((a, b) => b.citations - a.citations);
+  };
+
   // Run the suggestion search for the chosen papers (merged keywords on the server).
   const runSuggestions = async () => {
     const ids = Array.from(suggestSelection);
@@ -66,7 +116,14 @@ export default function Library() {
     setSuggestionsLoading(true);
     setHasSearched(true);
     try {
-      const data = await getSuggestionsForPapers(ids, 8);
+      const bundles = await Promise.all(
+        buildSuggestionLimits(ids).map(async ({ paperId, limit }) => ({
+          paperId,
+          limit,
+          suggestions: await getSuggestions(paperId, Math.max(limit, TARGET_SUGGESTIONS)),
+        }))
+      );
+      const data = mergeSuggestionResults(bundles);
       setSuggestions(data);
       if (data.length === 0) toast.info('No related papers found for this selection');
     } catch (err) {
@@ -146,7 +203,7 @@ export default function Library() {
               <Upload className="w-4 h-4 text-red-600" />
             </div>
             <div>
-              <p className="text-sm font-bold text-foreground">Uploading PDFâ€¦</p>
+              <p className="text-sm font-bold text-foreground">Uploading PDF…</p>
               <p className="text-xs text-muted-foreground">{uploadProgress}% complete</p>
             </div>
           </div>
@@ -169,7 +226,7 @@ export default function Library() {
               </div>
               <div>
                 <h1 className="font-bold text-foreground text-xl">All Articles</h1>
-                <p className="text-sm text-muted-foreground">{articles.length} articles Â· {filteredArticles.length} shown</p>
+                <p className="text-sm text-muted-foreground">{articles.length} articles · {filteredArticles.length} shown</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -212,7 +269,7 @@ export default function Library() {
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
                 type="text"
-                placeholder="Search by title or authorâ€¦"
+                placeholder="Search by title or author…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2.5 border border-input rounded-xl text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent bg-muted focus:bg-card transition-all"
@@ -283,7 +340,7 @@ export default function Library() {
                           {article.title}
                         </h3>
                         <p className="text-xs text-muted-foreground font-medium">
-                          {article.authors[0]} et al. Â· {article.year}
+                          {article.authors[0]} et al. · {article.year}
                         </p>
                       </div>
                       <button
@@ -325,7 +382,7 @@ export default function Library() {
                           {(() => {
                             const a = article.abstract?.trim();
                             if (a && a.length > 0) {
-                              return a.split('.').slice(0, 2).join('. ') + (a.split('.').length > 2 ? 'â€¦' : '');
+                              return a.split('.').slice(0, 2).join('. ') + (a.split('.').length > 2 ? '…' : '');
                             }
                             return article.keyFindings?.slice(0, 2).join('; ') || 'No summary available.';
                           })()}
@@ -386,9 +443,9 @@ export default function Library() {
                     </div>
                     <div className="flex items-center gap-3 text-xs text-muted-foreground mb-3">
                       <span>{article.authors[0]} et al.</span>
-                      <span>Â·</span>
+                      <span>·</span>
                       <span>{article.year}</span>
-                      <span>Â·</span>
+                      <span>·</span>
                       <span>{article.citations} citations</span>
                     </div>
                   </div>

@@ -94,7 +94,7 @@ export default function AnalysisResultsModal({ articles, depth, onClose }: Analy
 
           <div className="p-5 space-y-4">
             {loading || !receipt ? (
-              <div className="text-sm text-muted-foreground">Generating analysisâ€¦</div>
+              <div className="text-sm text-muted-foreground">Generating analysis…</div>
             ) : (
               <>
                 <div className="flex items-start gap-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800">
@@ -149,7 +149,7 @@ export default function AnalysisResultsModal({ articles, depth, onClose }: Analy
 
   // Export is a stub: shows a toast only, no real file is generated yet.
   const handleExport = (format: 'pdf' | 'excel') => {
-    toast.success(`Exporting analysis as ${format.toUpperCase()}â€¦`, {
+    toast.success(`Exporting analysis as ${format.toUpperCase()}…`, {
       description: 'Your statistical report will be ready shortly.',
     });
   };
@@ -170,7 +170,7 @@ export default function AnalysisResultsModal({ articles, depth, onClose }: Analy
             <div>
               <h2 className="font-bold text-slate-900 text-lg">Research Analysis</h2>
               <p className="text-xs text-slate-500">
-                {totalArticles} papers â€¢ {depth} analysis mode â€¢ AI-generated insights
+                {totalArticles} papers • {depth} analysis mode • AI-generated insights
               </p>
             </div>
           </div>
@@ -228,7 +228,7 @@ export default function AnalysisResultsModal({ articles, depth, onClose }: Analy
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
 
-          {/* â•â•â• Key Statistics Cards â•â•â• */}
+          {/* ═══ Key Statistics Cards ═══ */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-gradient-to-br from-red-50 to-red-100 border-2 border-red-200 rounded-xl p-4">
               <div className="flex items-center justify-between mb-2">
@@ -267,7 +267,7 @@ export default function AnalysisResultsModal({ articles, depth, onClose }: Analy
             </div>
           </div>
 
-          {/* â•â•â• Charts Row 1: Citation Distribution + Quality Radar â•â•â• */}
+          {/* ═══ Charts Row 1: Citation Distribution + Quality Radar ═══ */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Citation Distribution Bar Chart */}
             <div className="bg-white border border-slate-200 rounded-xl p-5">
@@ -307,7 +307,7 @@ export default function AnalysisResultsModal({ articles, depth, onClose }: Analy
             </div>
           </div>
 
-          {/* â•â•â• Charts Row 2: Year Trend + Methodology Breakdown â•â•â• */}
+          {/* ═══ Charts Row 2: Year Trend + Methodology Breakdown ═══ */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Publication Year Trend */}
             <div className="bg-white border border-slate-200 rounded-xl p-5">
@@ -358,7 +358,7 @@ export default function AnalysisResultsModal({ articles, depth, onClose }: Analy
             </div>
           </div>
 
-          {/* â•â•â• Topic Frequency Bar Chart â•â•â• */}
+          {/* ═══ Topic Frequency Bar Chart ═══ */}
           <div className="bg-white border border-slate-200 rounded-xl p-5">
             <h3 className="font-bold text-slate-800 text-sm mb-4 flex items-center gap-2">
               <Hash className="w-4 h-4 text-red-600" />
@@ -377,7 +377,7 @@ export default function AnalysisResultsModal({ articles, depth, onClose }: Analy
             </ResponsiveContainer>
           </div>
 
-          {/* â•â•â• AI-Generated Insights â•â•â• */}
+          {/* ═══ AI-Generated Insights ═══ */}
           <div className="bg-white border border-slate-200 rounded-xl p-5">
             <h3 className="font-bold text-slate-800 text-sm mb-3 flex items-center gap-2">
               <BarChart3 className="w-4 h-4 text-red-600" />

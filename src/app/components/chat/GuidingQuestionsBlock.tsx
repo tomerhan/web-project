@@ -173,7 +173,7 @@ export default function GuidingQuestionsBlock({ articles, selectedArticleIds, di
                         <div className="min-w-0">
                           <p className="text-xs font-bold text-foreground truncate">{a.title}</p>
                           <p className="text-[10px] text-muted-foreground truncate">
-                            {a.authors[0]}{a.authors.length > 1 ? ' et al.' : ''} â€¢ {a.year}
+                            {a.authors[0]}{a.authors.length > 1 ? ' et al.' : ''} • {a.year}
                           </p>
                         </div>
                       </div>
@@ -189,7 +189,7 @@ export default function GuidingQuestionsBlock({ articles, selectedArticleIds, di
                   className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
-                  {q.loading ? 'Thinkingâ€¦' : q.answer ? 'Regenerate Answer' : 'Get Answer'}
+                  {q.loading ? 'Thinking…' : q.answer ? 'Regenerate Answer' : 'Get Answer'}
                 </button>
               </div>
 
@@ -198,7 +198,7 @@ export default function GuidingQuestionsBlock({ articles, selectedArticleIds, di
                   <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-bounce" />
                   <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-bounce [animation-delay:0.15s]" />
                   <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-bounce [animation-delay:0.3s]" />
-                  <span>Generating guided answerâ€¦</span>
+                  <span>Generating guided answer…</span>
                 </div>
               )}
 
@@ -227,7 +227,7 @@ export default function GuidingQuestionsBlock({ articles, selectedArticleIds, di
 
         <span className="text-xs text-muted-foreground mt-4">
           {questions.filter(q => q.text.trim()).length} question{questions.filter(q => q.text.trim()).length === 1 ? '' : 's'} ready
-          {!hasAtLeastOne && questions.length > 0 && <span className="text-red-500 ml-2">â€¢ fill at least one</span>}
+          {!hasAtLeastOne && questions.length > 0 && <span className="text-red-500 ml-2">• fill at least one</span>}
         </span>
       </div>
 

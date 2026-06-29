@@ -153,7 +153,7 @@ export default function Profile({ onNavigate }: ProfileProps) {
                   <select className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground">
                     <option value="en">English</option>
                     <option value="he">Hebrew</option>
-                    <option value="es">EspaÃ±ol</option>
+                    <option value="es">Español</option>
                   </select>
                 </div>
               </div>
@@ -196,7 +196,7 @@ export default function Profile({ onNavigate }: ProfileProps) {
                         <h4 className="font-bold text-foreground">{session.name}</h4>
                         <p className="text-sm text-muted-foreground">{session.createdDate}</p>
                         <div className="text-xs text-muted-foreground mt-1">
-                          {session.duration} min Â· {session.articleIds.length} articles
+                          {session.duration} min · {session.articleIds.length} articles
                         </div>
                       </div>
                       <button
@@ -218,17 +218,17 @@ export default function Profile({ onNavigate }: ProfileProps) {
               <h3 className="font-semibold text-foreground mb-4">Achievements</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-background border border-border rounded-lg p-4 text-center">
-                  <div className="text-3xl mb-2">ðŸ“š</div>
+                  <div className="text-3xl mb-2">📚</div>
                   <div className="font-semibold text-foreground">Avid Reader</div>
                   <div className="text-xs text-muted-foreground">5+ articles in library</div>
                 </div>
                 <div className="bg-background border border-border rounded-lg p-4 text-center">
-                  <div className="text-3xl mb-2">ðŸ’¬</div>
+                  <div className="text-3xl mb-2">💬</div>
                   <div className="font-semibold text-foreground">Curious Mind</div>
                   <div className="text-xs text-muted-foreground">10+ questions asked</div>
                 </div>
                 <div className="bg-background border border-border rounded-lg p-4 text-center">
-                  <div className="text-3xl mb-2">ðŸ”</div>
+                  <div className="text-3xl mb-2">🔍</div>
                   <div className="font-semibold text-foreground">Researcher</div>
                   <div className="text-xs text-muted-foreground">Multiple comparisons made</div>
                 </div>

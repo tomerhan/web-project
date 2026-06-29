@@ -88,7 +88,7 @@ export default function ChatAnalyzer() {
     if (comprehensionPercent === 100 && !celebratedRef.current) {
       celebratedRef.current = true;
       toast.success('100% comprehension reached!', {
-        description: 'Outstanding work â€” you mastered this material.',
+        description: 'Outstanding work — you mastered this material.',
       });
     } else if (comprehensionPercent < 100) {
       celebratedRef.current = false;
@@ -339,14 +339,14 @@ export default function ChatAnalyzer() {
       )}
 
       <div className="flex-1 flex overflow-hidden bg-muted min-h-0">
-        {/* Left bar â€” comprehension % with 100% celebration */}
+        {/* Left bar — comprehension % with 100% celebration */}
         <aside className={`w-16 shrink-0 flex flex-col items-center gap-3 py-6 border-r border-border relative overflow-hidden transition-colors duration-500 ${comprehensionPercent === 100
             ? 'bg-gradient-to-b from-red-50 via-card to-card dark:from-red-950/40 dark:via-card dark:to-card'
             : 'bg-card'
           }`}>
           {comprehensionPercent === 100 && (
             <>
-              <span className="absolute top-1 left-1/2 -translate-x-1/2 text-base animate-bounce" aria-hidden>ðŸ†</span>
+              <span className="absolute top-1 left-1/2 -translate-x-1/2 text-base animate-bounce" aria-hidden>🏆</span>
               <span className="pointer-events-none absolute inset-0 ring-2 ring-red-500/60 animate-pulse" aria-hidden />
               <span className="pointer-events-none absolute top-6 left-2 w-1 h-1 rounded-full bg-red-400 animate-ping" aria-hidden />
               <span className="pointer-events-none absolute top-12 right-2 w-1 h-1 rounded-full bg-red-500 animate-ping [animation-delay:0.3s]" aria-hidden />
@@ -379,7 +379,7 @@ export default function ChatAnalyzer() {
             }`}>{comprehensionPercent === 100 ? 'MAX!' : '0%'}</span>
         </aside>
 
-        {/* Chat section â€” moved from main screen */}
+        {/* Chat section — moved from main screen */}
         <div className="flex-1 overflow-y-auto p-4 md:p-6 min-w-0">
           <section className="bg-card rounded-2xl shadow-sm border border-border flex flex-col h-[500px] overflow-hidden">
             <div className="bg-card px-5 py-4 border-b border-border flex items-center justify-between flex-shrink-0 gap-4 w-full min-w-0">
@@ -410,7 +410,7 @@ export default function ChatAnalyzer() {
                 )}
               </div>
 
-              {/* 3-dot menu â€” attach a group of articles to discuss */}
+              {/* 3-dot menu — attach a group of articles to discuss */}
               {!isResumedMode && (
                 <div className="relative shrink-0">
                   <button

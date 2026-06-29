@@ -87,7 +87,7 @@ export default function StudentPerformancePanel({
           <Activity className="w-5 h-5" />
         </div>
         <div>
-          <h2 className="font-bold text-foreground">{studentName} â€” Performance</h2>
+          <h2 className="font-bold text-foreground">{studentName} — Performance</h2>
           <p className="text-xs text-muted-foreground">Comprehension, engagement, and topic coverage from chat activity</p>
         </div>
       </div>

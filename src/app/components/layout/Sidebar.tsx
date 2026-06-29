@@ -126,7 +126,7 @@ export default function Sidebar({ mobileSidebarOpen, onMobileSidebarClose }: Sid
           </div>
         )}
 
-        {/* Collapse toggle â€” desktop only */}
+        {/* Collapse toggle — desktop only */}
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="hidden md:flex items-center justify-center p-2 text-slate-400 hover:text-white hover:bg-slate-800 transition-colors rounded-lg border border-transparent hover:border-slate-700"

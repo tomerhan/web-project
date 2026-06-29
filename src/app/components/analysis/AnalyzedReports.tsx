@@ -153,7 +153,7 @@ export default function AnalyzedReports() {
                     </ArticleIcon>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-foreground truncate">{article.title}</p>
-                      <p className="text-xs text-muted-foreground">{article.authors[0]} et al. Â· {article.year}</p>
+                      <p className="text-xs text-muted-foreground">{article.authors[0]} et al. · {article.year}</p>
                     </div>
                     <button onClick={() => setSinglePDFView(article)} className="p-2 text-muted-foreground hover:text-foreground rounded-md" title="Open PDF">
                       <Eye className="w-4 h-4" />
@@ -178,7 +178,7 @@ export default function AnalyzedReports() {
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
                         <p className="font-bold text-foreground truncate">{report.name}</p>
-                        <p className="text-xs text-muted-foreground mt-1">{report.articleIds.length} articles Â· {report.analysisDate}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{report.articleIds.length} articles · {report.analysisDate}</p>
                       </div>
                       <div className="flex items-center gap-2">
                         <button onClick={() => { setCompareArticles(getArticlesForReport(report.articleIds)); setShowCompareModal(true); }} className="px-3 py-1 rounded-lg bg-red-50 text-red-700 text-xs font-bold">Open Comparison</button>

@@ -203,7 +203,7 @@ export default function ChatInterface() {
 
   // use getShortSummary from utils
 
-  // (carousel removed) â€” navigation now via two fixed columns (Comparisons | Analyzed)
+  // (carousel removed) — navigation now via two fixed columns (Comparisons | Analyzed)
 
   // Restore carousel helpers: arrow class and scroll function
   const arrowBtnClass = 'p-2 rounded-full bg-muted text-muted-foreground hover:bg-blue-100 hover:text-blue-600 hover:border-blue-300 hover:shadow-md hover:scale-110 transition-all';
@@ -398,7 +398,7 @@ export default function ChatInterface() {
     if (comprehensionPercent === 100 && !celebratedRef.current) {
       celebratedRef.current = true;
       toast.success('100% comprehension reached!', {
-        description: 'Outstanding work â€” you mastered this material.',
+        description: 'Outstanding work — you mastered this material.',
       });
     } else if (comprehensionPercent < 100) {
       celebratedRef.current = false;
@@ -682,7 +682,7 @@ export default function ChatInterface() {
                   <div className="flex items-center justify-between px-2 mb-3">
                     <div />
                     <div className="flex items-center gap-2">
-                      {/* count displayed in library header â€” removed duplicate indicator here */}
+                      {/* count displayed in library header — removed duplicate indicator here */}
                     </div>
                   </div>
 
@@ -717,7 +717,7 @@ export default function ChatInterface() {
                                   {article.title}
                                 </h3>
                                 <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mt-1 truncate">
-                                  {article.authors.join(', ')} â€¢ {article.year}
+                                  {article.authors.join(', ')} • {article.year}
                                 </p>
                               </div>
                             </div>
@@ -769,7 +769,7 @@ export default function ChatInterface() {
             })()}
           </section>
 
-          {/* â•â•â• Guided Questions â€” primary tool to sharpen understanding â•â•â• */}
+          {/* ═══ Guided Questions — primary tool to sharpen understanding ═══ */}
           {!isLecturerView && (
             <GuidingQuestionsBlock
               articles={uploadedFiles}
@@ -851,7 +851,7 @@ export default function ChatInterface() {
                 });
               }
             } catch { /* ignore */ }
-            // Demo flag â€” forces Research Chat bar to 100% so the celebration effect is visible
+            // Demo flag — forces Research Chat bar to 100% so the celebration effect is visible
             try { localStorage.setItem('demo-comprehension-100', '1'); } catch { }
             window.dispatchEvent(new CustomEvent('comprehension-demo-100'));
             setAnalysisType(null);
