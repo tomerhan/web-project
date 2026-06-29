@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { Toaster } from 'sonner';
 import Login from './components/auth/Login';
 import Register from './components/auth/Register';
+import ForgotPassword from './components/auth/ForgotPassword';
 import LecturerDashboard from './components/dashboard/LecturerDashboard';
 import ChatInterface from './components/chat/ChatInterface';
 import Library from './components/library/Library';
@@ -57,6 +58,7 @@ export const router = createBrowserRouter([
     children: [
       { path: 'login',    Component: LoginRoute },
       { path: 'register', Component: Register },
+      { path: 'forgot-password', Component: ForgotPassword },
 
       /* Student pages — wrapped in sidebar layout */
       {
