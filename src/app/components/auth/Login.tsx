@@ -1,14 +1,14 @@
 import React from 'react';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { FileText, Mail, Lock, ArrowRight, Sun, Moon, Loader2 } from 'lucide-react';
+import { FileText, Mail, Lock, ArrowRight, Sun, Moon, Loader2, User } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { toast } from 'sonner';
 import api from '../../services/api';
 
 export default function Login() {
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { setUser } = useAuth();
@@ -33,14 +33,14 @@ export default function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
+    if (!identifier || !password) {
       toast.error('Please fill in all fields');
       return;
     }
 
     setIsLoading(true);
     try {
-      const response = await api.post('/users/login', { email, password });
+      const response = await api.post('/users/login', { identifier, password });
       const { token, user } = response.data;
       
       // Save token
@@ -92,15 +92,15 @@ export default function Login() {
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-sm font-medium text-foreground mb-2">
-                Email Address
+                Email or Username
               </label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@university.edu"
+                  type="text"
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
+                  placeholder="you@university.edu or username"
                   className="w-full pl-11 pr-4 py-3 border border-input rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-foreground placeholder:text-muted-foreground"
                   required
                   disabled={isLoading}
@@ -123,6 +123,15 @@ export default function Login() {
                   required
                   disabled={isLoading}
                 />
+              </div>
+              <div className="mt-2 text-right">
+                <button
+                  type="button"
+                  onClick={() => navigate('/forgot-password')}
+                  className="text-sm text-red-600 hover:text-red-700 font-medium"
+                >
+                  Forgot Password?
+                </button>
               </div>
             </div>
 

@@ -11,6 +11,7 @@ export default function Register() {
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
+    username: '',
     email: '',
     institution: '',
     role: 'student', // default role
@@ -45,6 +46,7 @@ export default function Register() {
     try {
       await api.post('/users/register', {
         name: formData.name,
+        username: formData.username,
         email: formData.email,
         password: formData.password,
         role: formData.role,
@@ -103,6 +105,24 @@ export default function Register() {
                   value={formData.name}
                   onChange={(e) => handleChange('name', e.target.value)}
                   placeholder="Dr. Jane Smith"
+                  className="w-full pl-11 pr-4 py-3 border border-input rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-foreground placeholder:text-muted-foreground"
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">
+                Username
+              </label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <input
+                  type="text"
+                  value={formData.username}
+                  onChange={(e) => handleChange('username', e.target.value)}
+                  placeholder="janesmith"
                   className="w-full pl-11 pr-4 py-3 border border-input rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-foreground placeholder:text-muted-foreground"
                   required
                   disabled={isLoading}
