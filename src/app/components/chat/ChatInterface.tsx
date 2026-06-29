@@ -96,6 +96,8 @@ export default function ChatInterface() {
     new Set()
   );
   const [analysisDepth, setAnalysisDepth] = useState<1 | 2 | 3>(2);
+  // Difficulty for the "Create Chat" box (own slider, separate from Analyze depth).
+  const [chatDepth, setChatDepth] = useState<1 | 2 | 3>(2);
 
   // State for article groups (organization feature)
   const [articleGroups, setArticleGroups] = useState<ArticleGroup[]>([]);
@@ -795,6 +797,37 @@ export default function ChatInterface() {
             />
           )}
 
+          {/* ═══ Create Chat — own box below Guided Questions ═══ */}
+          {!isLecturerView && (
+            <div className="bg-card border border-border rounded-2xl shadow-sm p-4 flex flex-col md:flex-row items-center gap-5">
+              <div className="flex-1 w-full bg-muted border border-border p-3.5 rounded-2xl flex items-center gap-4">
+                <div className="flex flex-col flex-shrink-0">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase">Difficulty</span>
+                  <span className="text-sm font-bold text-foreground">{getDepthLabel(chatDepth)}</span>
+                </div>
+                <div className="w-px h-7 bg-border" />
+                <div className="flex-1 relative pt-5 pb-1">
+                  <input
+                    type="range" min="1" max="3" step="1"
+                    value={chatDepth}
+                    onChange={(e) => setChatDepth(parseInt(e.target.value) as 1 | 2 | 3)}
+                    className="w-full h-2 bg-slate-300 rounded-lg appearance-none cursor-pointer accent-red-600"
+                  />
+                  <div className="absolute top-0 left-0 w-full flex justify-between text-[10px] font-bold text-muted-foreground uppercase">
+                    <span>Fast</span><span>Regular</span><span>Deep</span>
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={openInChatAnalyzer}
+                disabled={selectedArticles.size === 0}
+                className="w-full md:w-auto md:px-8 py-3.5 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 hover:shadow-lg hover:scale-105 transition-all disabled:opacity-50"
+              >
+                Create Chat {selectedArticles.size > 0 && `(${selectedArticles.size})`}
+              </button>
+            </div>
+          )}
+
         </div>
       </div>
 
@@ -834,13 +867,6 @@ export default function ChatInterface() {
                 className="flex-1 md:px-8 py-3.5 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 hover:border-red-800 hover:shadow-lg hover:scale-105 transition-all disabled:opacity-50"
               >
                 Compare
-              </button>
-              <button
-                onClick={openInChatAnalyzer}
-                disabled={selectedArticles.size === 0}
-                className="flex-1 md:px-8 py-3.5 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 hover:shadow-lg hover:scale-105 transition-all disabled:opacity-50"
-              >
-                Create Chat {selectedArticles.size > 0 && `(${selectedArticles.size})`}
               </button>
             </div>
           </div>
