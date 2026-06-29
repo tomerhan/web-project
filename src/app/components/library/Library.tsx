@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import {
-  BookOpen, Search, Filter, Clock, Star,
-  LayoutGrid, List as ListIcon, Upload, Trash2, Check, ExternalLink, Lightbulb, Link as LinkIcon, Home
+  Search, Filter, Upload, FileText, Calendar, Users, TrendingUp,
+  LayoutGrid, List, BookOpen, Star, ChevronDown, ChevronUp, Check, Sparkles, Trash2, Loader2, Home
 } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { Article } from '../../data/mockData';
