@@ -4,11 +4,18 @@ import {
   LayoutGrid, List, BookOpen, Star, ChevronDown, ChevronUp, Check, Sparkles, Trash2, Loader2
 } from 'lucide-react';
 import { Article } from '../../data/mockData';
-import { getPapers, uploadPaper, deletePaper, getSuggestionsForPapers, PaperSuggestion } from '../../services/paperService';
+import { getPapers, uploadPaper, deletePaper, getSuggestions, PaperSuggestion } from '../../services/paperService';
 import { toast } from 'sonner';
 import ArticleIcon from '../ui/ArticleIcon';
 
 type ViewMode = 'grid' | 'list';
+const TARGET_SUGGESTIONS = 10;
+
+type SuggestionBundle = {
+  paperId: string;
+  limit: number;
+  suggestions: PaperSuggestion[];
+};
 
 export default function Library() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -59,6 +66,49 @@ export default function Library() {
     });
   };
 
+  const buildSuggestionLimits = (selectedPaperIds: string[]) => {
+    const selectedArticles = selectedPaperIds
+      .map((paperId) => articles.find((article) => article.id === paperId))
+      .filter((article): article is Article => Boolean(article));
+
+    const sortedSelected = [...selectedArticles].sort((a, b) => b.citations - a.citations);
+    const baseLimit = Math.floor(TARGET_SUGGESTIONS / Math.max(1, sortedSelected.length));
+    const remainder = TARGET_SUGGESTIONS % Math.max(1, sortedSelected.length);
+    const bonusPaperId = sortedSelected[0]?.id;
+
+    return selectedPaperIds.map((paperId) => ({
+      paperId,
+      limit: baseLimit + (paperId === bonusPaperId ? remainder : 0),
+    }));
+  };
+
+  const mergeSuggestionResults = (bundles: SuggestionBundle[]) => {
+    const seen = new Set<string>();
+    const merged: PaperSuggestion[] = [];
+
+    const addSuggestion = (suggestion: PaperSuggestion) => {
+      if (seen.has(suggestion.externalId)) return;
+      seen.add(suggestion.externalId);
+      merged.push(suggestion);
+    };
+
+    for (const bundle of bundles) {
+      bundle.suggestions.slice(0, bundle.limit).forEach(addSuggestion);
+    }
+
+    if (merged.length < TARGET_SUGGESTIONS) {
+      for (const bundle of bundles) {
+        for (const suggestion of bundle.suggestions) {
+          if (merged.length >= TARGET_SUGGESTIONS) break;
+          addSuggestion(suggestion);
+        }
+        if (merged.length >= TARGET_SUGGESTIONS) break;
+      }
+    }
+
+    return merged.slice(0, TARGET_SUGGESTIONS).sort((a, b) => b.citations - a.citations);
+  };
+
   // Run the suggestion search for the chosen papers (merged keywords on the server).
   const runSuggestions = async () => {
     const ids = Array.from(suggestSelection);
@@ -66,7 +116,14 @@ export default function Library() {
     setSuggestionsLoading(true);
     setHasSearched(true);
     try {
-      const data = await getSuggestionsForPapers(ids, 8);
+      const bundles = await Promise.all(
+        buildSuggestionLimits(ids).map(async ({ paperId, limit }) => ({
+          paperId,
+          limit,
+          suggestions: await getSuggestions(paperId, Math.max(limit, TARGET_SUGGESTIONS)),
+        }))
+      );
+      const data = mergeSuggestionResults(bundles);
       setSuggestions(data);
       if (data.length === 0) toast.info('No related papers found for this selection');
     } catch (err) {
