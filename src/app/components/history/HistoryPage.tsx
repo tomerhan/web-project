@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   History, GitCompare, MessageSquare, BookOpen,
-  Trash2, Search, Calendar, BarChart3, FileText, Edit, X, Check
+  Trash2, Search, Calendar, BarChart3, FileText, Edit, X, Check, Home
 } from 'lucide-react';
 import { mockAnalysisSessions, mockArticles, ChatMessage, AnalysisSession, Article } from '../../data/mockData';
 import { useNavigate } from 'react-router';
@@ -132,14 +132,23 @@ export default function HistoryPage() {
     <div className="flex-1 overflow-y-auto bg-muted">
       {/* Header */}
       <div className="bg-card border-b border-border px-6 py-5 flex-shrink-0">
-        <div className="max-w-4xl mx-auto flex items-center gap-3">
-          <div className="w-10 h-10 bg-muted rounded-xl flex items-center justify-center text-red-600">
-            <History className="w-5 h-5" />
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-muted rounded-xl flex items-center justify-center text-red-600">
+              <History className="w-5 h-5" />
+            </div>
+            <div>
+              <h1 className="font-bold text-foreground text-xl">Chat History</h1>
+              <p className="text-sm text-muted-foreground">Your past research sessions and analyses</p>
+            </div>
           </div>
-          <div>
-            <h1 className="font-bold text-foreground text-xl">Chat History</h1>
-            <p className="text-sm text-muted-foreground">Your past research sessions and analyses</p>
-          </div>
+          <button
+            onClick={() => navigate('/')}
+            className="flex items-center gap-2 px-4 py-2 bg-muted hover:bg-slate-200 dark:hover:bg-slate-700 text-foreground text-sm font-medium rounded-lg transition-colors border border-border"
+          >
+            <Home className="w-4 h-4" />
+            <span className="hidden sm:inline">Back to Home</span>
+          </button>
         </div>
       </div>
 

@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import {
   BarChart, FileText, Calendar, GitCompare, Trash2, Search,
-  ChevronDown, ChevronUp, Eye, Download
+  ChevronDown, ChevronUp, Eye, Download, Home
 } from 'lucide-react';
+import { useNavigate } from 'react-router';
 import { mockArticles, Article } from '../../data/mockData';
 import { CHAT_LABEL } from '../../config/nav';
 import { loadUploadedArticles } from '../../../utils/articleStore';
@@ -26,6 +27,7 @@ import SinglePDFViewer from '../library/SinglePDFViewer';
  */
 
 export default function AnalyzedReports() {
+  const navigate = useNavigate();
   // UI state: search box, which report row is expanded, and which modal is open.
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -116,6 +118,13 @@ export default function AnalyzedReports() {
                 <p className="text-sm text-muted-foreground">{reports.length} reports · {filteredReports.length} shown</p>
               </div>
             </div>
+            <button
+              onClick={() => navigate('/')}
+              className="flex items-center gap-2 px-4 py-2 bg-muted hover:bg-slate-200 dark:hover:bg-slate-700 text-foreground text-sm font-medium rounded-lg transition-colors border border-border"
+            >
+              <Home className="w-4 h-4" />
+              <span className="hidden sm:inline">Back to Home</span>
+            </button>
           </div>
 
           {/* Search */}

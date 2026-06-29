@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import {
-  Search, Filter, Upload, FileText, Calendar, Users, TrendingUp,
-  LayoutGrid, List, BookOpen, Star, ChevronDown, ChevronUp, Check, Sparkles, Trash2, Loader2
+  BookOpen, Search, Filter, Clock, Star,
+  LayoutGrid, List as ListIcon, Upload, Trash2, Check, ExternalLink, Lightbulb, Link as LinkIcon, Home
 } from 'lucide-react';
+import { useNavigate } from 'react-router';
 import { Article } from '../../data/mockData';
 import { getPapers, uploadPaper, deletePaper, getSuggestions, PaperSuggestion } from '../../services/paperService';
 import { toast } from 'sonner';
@@ -18,6 +19,7 @@ type SuggestionBundle = {
 };
 
 export default function Library() {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTopic, setSelectedTopic] = useState('all');
   const [articles, setArticles] = useState<Article[]>([]);
@@ -230,6 +232,13 @@ export default function Library() {
               </div>
             </div>
             <div className="flex items-center gap-3">
+              <button
+                onClick={() => navigate('/')}
+                className="hidden sm:flex items-center gap-2 px-4 py-2 bg-muted hover:bg-slate-200 dark:hover:bg-slate-700 text-foreground text-sm font-medium rounded-lg transition-colors border border-border"
+              >
+                <Home className="w-4 h-4" />
+                <span>Back to Home</span>
+              </button>
               {/* Compare button */}
               {selectedForCompare.size > 0 && (
                 <button

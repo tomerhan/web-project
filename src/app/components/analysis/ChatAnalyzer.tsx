@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Send, Sparkles, FileText, MessageSquare, MoreVertical, BookmarkPlus, Check, Edit, X } from 'lucide-react';
+import { Send, Sparkles, FileText, MessageSquare, MoreVertical, BookmarkPlus, Check, Edit, X, Home } from 'lucide-react';
+import { useNavigate } from 'react-router';
 import { ChatMessage, Article } from '../../data/mockData';
 import { getPapers } from '../../services/paperService';
 import { startOrResumeChat, sendChatMessage, mapMessagesToFrontend } from '../../services/chatService';
@@ -27,6 +28,7 @@ interface ArticleGroup {
 }
 
 export default function ChatAnalyzer() {
+  const navigate = useNavigate();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -289,6 +291,13 @@ export default function ChatAnalyzer() {
             <p className="text-xs text-muted-foreground">Comprehension tracker + research chat</p>
           </div>
         </div>
+        <button
+          onClick={() => navigate('/')}
+          className="flex items-center gap-2 px-4 py-2 bg-muted hover:bg-slate-200 dark:hover:bg-slate-700 text-foreground text-sm font-medium rounded-lg transition-colors border border-border"
+        >
+          <Home className="w-4 h-4" />
+          <span className="hidden sm:inline">Back to Home</span>
+        </button>
       </header>
 
       {/* Control bar: select difficulty + create chat */}
