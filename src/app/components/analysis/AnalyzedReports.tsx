@@ -7,6 +7,7 @@ import { mockArticles, Article } from '../../data/mockData';
 import { CHAT_LABEL } from '../../config/nav';
 import { loadUploadedArticles } from '../../../utils/articleStore';
 import { loadReports, deleteReport, AnalysisReport } from '../../../utils/reportsStore';
+import { getPapers } from '../../services/paperService';
 import { toast } from 'sonner';
 import AnalysisResultsModal from './AnalysisResultsModal';
 import ComparisonModal from './ComparisonModal';
@@ -42,6 +43,14 @@ export default function AnalyzedReports() {
     return () => window.removeEventListener('focus', refresh);
   }, []);
 
+  // Real papers from the backend, so reports referencing DB article ids resolve.
+  const [dbArticles, setDbArticles] = useState<Article[]>([]);
+  useEffect(() => {
+    getPapers()
+      .then(setDbArticles)
+      .catch((e) => console.error('Failed to load papers for reports:', e));
+  }, []);
+
   // Reports matching the current search text (case-insensitive name match).
   const filteredReports = reports.filter((report) =>
     report.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -67,23 +76,19 @@ export default function AnalyzedReports() {
   // uploaded (localStorage) articles, then the mock seed; falls back to mocks
   // only if reading storage throws. filter(Boolean) drops any unknown ids.
   const getArticlesForReport = (articleIds: string[]) => {
-    try {
-      const stored = loadUploadedArticles();
-      const all = [...stored, ...mockArticles.filter(m => !stored.find(s => s.id === m.id))];
-      return articleIds.map(id => all.find(a => a.id === id)).filter(Boolean) as Article[];
-    } catch (e) {
-      return articleIds.map(id => mockArticles.find(a => a.id === id)).filter(Boolean) as Article[];
-    }
+    return articleIds.map(id => allArticles.find(a => a.id === id)).filter(Boolean) as Article[];
   };
 
-  // All available articles (stored uploads merged with mocks, de-duped by id).
+  // All available articles: backend papers first, then localStorage uploads,
+  // then mock seed — de-duped by id so report ids resolve to real articles.
   const allArticles = (() => {
-    try {
-      const stored = loadUploadedArticles();
-      return [...stored, ...mockArticles.filter(m => !stored.find(s => s.id === m.id))];
-    } catch (e) {
-      return mockArticles;
+    let stored: Article[] = [];
+    try { stored = loadUploadedArticles(); } catch { stored = []; }
+    const merged: Article[] = [...dbArticles];
+    for (const a of [...stored, ...mockArticles]) {
+      if (!merged.find(m => m.id === a.id)) merged.push(a);
     }
+    return merged;
   })();
 
   // Unique set of article ids touched by any report -> the left-column list.
