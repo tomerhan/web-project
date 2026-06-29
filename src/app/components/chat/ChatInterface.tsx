@@ -12,6 +12,7 @@ import { mockChatHistory, ChatMessage, Article } from '../../data/mockData';
 import { getPapers, uploadPaper } from '../../services/paperService';
 // Import authentication context to check user role
 import { useAuth } from '../../context/AuthContext';
+import { getMyProgress, getStudentProgress, toScoreMap } from '../../services/progressService';
 // Import routing hooks for navigation
 import { useNavigate, useParams } from 'react-router';
 // Import component components for displaying PDFs and analysis
@@ -359,16 +360,23 @@ export default function ChatInterface() {
     setSaveName('');
   };
 
-  // Per-article comprehension % derived from chat activity
+  // Real per-paper comprehension, scored server-side by the LLM judge and stored
+  // in Progress. For a lecturer viewing /student/:id we load that student; for a
+  // student's own view we load their own progress.
+  const [realProgress, setRealProgress] = useState<Record<string, number>>({});
+  useEffect(() => {
+    const load = studentId ? getStudentProgress(studentId) : getMyProgress();
+    load
+      .then((items) => setRealProgress(toScoreMap(items)))
+      .catch((e) => console.error('Failed to load comprehension progress:', e));
+  }, [studentId]);
+
+  // Per-article comprehension % from the server-side assessment (0 if none yet).
   const perArticleComprehension = useMemo(() => {
     const map: Record<string, number> = {};
-    uploadedFiles.forEach((a) => {
-      if (!analyzedArticles.has(a.id)) { map[a.id] = 0; return; }
-      const cnt = messages.filter((m) => m.articleId === a.id).length;
-      map[a.id] = Math.min(100, cnt * 20);
-    });
+    uploadedFiles.forEach((a) => { map[a.id] = realProgress[a.id] ?? 0; });
     return map;
-  }, [uploadedFiles, messages, analyzedArticles]);
+  }, [uploadedFiles, realProgress]);
 
   // Count of currently selected PDFs that have been analyzed
   const analyzedSelectedCount = useMemo(
