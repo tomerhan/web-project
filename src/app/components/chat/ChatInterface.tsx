@@ -13,6 +13,7 @@ import { getPapers, uploadPaper } from '../../services/paperService';
 // Import authentication context to check user role
 import { useAuth } from '../../context/AuthContext';
 import { getMyProgress, getStudentProgress, toScoreMap } from '../../services/progressService';
+import { saveReport } from '../../../utils/reportsStore';
 // Import routing hooks for navigation
 import { useNavigate, useParams } from 'react-router';
 // Import component components for displaying PDFs and analysis
@@ -832,6 +833,24 @@ export default function ChatInterface() {
             const t = analysisType;
             setAnalyzedArticles((prev) => new Set([...prev, ...selectedArticles]));
             if (t === 'compare') setComparedArticles((prev) => new Set([...prev, ...selectedArticles]));
+            // Persist a report so it shows up in the Analyzed Reports screen.
+            try {
+              const ids = Array.from(selectedArticles);
+              const titles = ids
+                .map((id) => uploadedFiles.find((a) => a.id === id)?.title)
+                .filter(Boolean) as string[];
+              if (ids.length > 0) {
+                const now = new Date().toISOString();
+                saveReport({
+                  id: `r-${Date.now()}`,
+                  name: titles.length === 1 ? titles[0] : `${titles[0] ?? 'Analysis'} +${ids.length - 1} more`,
+                  articleIds: ids,
+                  createdAt: now,
+                  analysisDate: now,
+                  depth: 'Regular',
+                });
+              }
+            } catch { /* ignore */ }
             // Demo flag â€” forces Research Chat bar to 100% so the celebration effect is visible
             try { localStorage.setItem('demo-comprehension-100', '1'); } catch { }
             window.dispatchEvent(new CustomEvent('comprehension-demo-100'));

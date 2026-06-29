@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   BarChart, FileText, Calendar, GitCompare, Trash2, Search,
   ChevronDown, ChevronUp, Eye, Download
@@ -6,6 +6,7 @@ import {
 import { mockArticles, Article } from '../../data/mockData';
 import { CHAT_LABEL } from '../../config/nav';
 import { loadUploadedArticles } from '../../../utils/articleStore';
+import { loadReports, deleteReport, AnalysisReport } from '../../../utils/reportsStore';
 import { toast } from 'sonner';
 import AnalysisResultsModal from './AnalysisResultsModal';
 import ComparisonModal from './ComparisonModal';
@@ -23,16 +24,6 @@ import SinglePDFViewer from '../library/SinglePDFViewer';
  * merging localStorage uploads with the mock article seed.
  */
 
-// One saved report = a named set of article ids + when it was run + its depth.
-interface AnalysisReport {
-  id: string;
-  name: string;
-  articleIds: string[];
-  createdAt: string;
-  analysisDate: string;
-  depth: 'Fast' | 'Regular' | 'Deep';
-}
-
 export default function AnalyzedReports() {
   // UI state: search box, which report row is expanded, and which modal is open.
   const [searchQuery, setSearchQuery] = useState('');
@@ -42,8 +33,14 @@ export default function AnalyzedReports() {
   const [compareArticles, setCompareArticles] = useState<Article[]>([]);
   const [singlePDFView, setSinglePDFView] = useState<Article | null>(null);
   
-  // Reports - start empty since mock data is deleted
-  const [reports, setReports] = useState<AnalysisReport[]>([]);
+  // Reports persisted from Research Chat analyses (localStorage). Reload on focus
+  // so a report created in another tab/route shows up here.
+  const [reports, setReports] = useState<AnalysisReport[]>(() => loadReports());
+  useEffect(() => {
+    const refresh = () => setReports(loadReports());
+    window.addEventListener('focus', refresh);
+    return () => window.removeEventListener('focus', refresh);
+  }, []);
 
   // Reports matching the current search text (case-insensitive name match).
   const filteredReports = reports.filter((report) =>
@@ -53,13 +50,13 @@ export default function AnalyzedReports() {
   // Delete with a confirm prompt, then drop it from state + toast.
   const handleDelete = (id: string, name: string) => {
     if (window.confirm(`Delete "${name}"?`)) {
-      setReports((prev) => prev.filter((r) => r.id !== id));
+      setReports(deleteReport(id));
       toast.success('Report deleted successfully');
     }
   };
 
   const handleExport = (report: AnalysisReport) => {
-    toast.success(`Exporting "${report.name}" as PDFâ€¦`);
+    toast.success(`Exporting "${report.name}" as PDF…`);
   };
 
   const handleViewAnalysis = (report: AnalysisReport) => {
@@ -111,7 +108,7 @@ export default function AnalyzedReports() {
               </div>
               <div>
                 <h1 className="font-bold text-foreground text-xl">Analyzed Reports</h1>
-                <p className="text-sm text-muted-foreground">{reports.length} reports Â· {filteredReports.length} shown</p>
+                <p className="text-sm text-muted-foreground">{reports.length} reports · {filteredReports.length} shown</p>
               </div>
             </div>
           </div>
@@ -122,7 +119,7 @@ export default function AnalyzedReports() {
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
                 type="text"
-                placeholder="Search reportsâ€¦"
+                placeholder="Search reports…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2.5 border border-input rounded-xl text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent bg-muted focus:bg-card transition-all"
