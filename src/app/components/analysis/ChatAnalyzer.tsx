@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Send, Sparkles, FileText, MessageSquare, MoreVertical, BookmarkPlus, Check, Edit, X, Home } from 'lucide-react';
+import { Send, Sparkles, FileText, MessageSquare, MoreVertical, BookmarkPlus, Check, Edit, X, Home, Brain } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { ChatMessage, Article } from '../../data/mockData';
 import { getPapers } from '../../services/paperService';
@@ -79,9 +79,12 @@ export default function ChatAnalyzer() {
       .catch((e) => console.error('Failed to load comprehension progress:', e));
   }, []);
 
+  // TEMP PREVIEW: click the % to force 100% and watch the celebration. Remove before commit.
+  const [previewMax, setPreviewMax] = useState(false);
+
   const comprehensionPercent = useMemo(
-    () => (activeArticleId ? progressByPaper[activeArticleId] ?? 0 : 0),
-    [activeArticleId, progressByPaper]
+    () => (previewMax ? 100 : activeArticleId ? progressByPaper[activeArticleId] ?? 0 : 0),
+    [previewMax, activeArticleId, progressByPaper]
   );
 
   // Celebration toast: fire once when hitting 100%; reset the latch below 100.
@@ -349,13 +352,12 @@ export default function ChatAnalyzer() {
 
       <div className="flex-1 flex overflow-hidden bg-muted min-h-0">
         {/* Left bar — comprehension % with 100% celebration */}
-        <aside className={`w-16 shrink-0 flex flex-col items-center gap-3 py-6 border-r border-border relative overflow-hidden transition-colors duration-500 ${comprehensionPercent === 100
+        <aside className={`w-20 shrink-0 flex flex-col items-center gap-3 py-6 border-r border-border relative overflow-hidden transition-colors duration-500 ${comprehensionPercent === 100
             ? 'bg-gradient-to-b from-red-50 via-card to-card dark:from-red-950/40 dark:via-card dark:to-card'
             : 'bg-card'
           }`}>
           {comprehensionPercent === 100 && (
             <>
-              <span className="absolute top-1 left-1/2 -translate-x-1/2 text-base animate-bounce" aria-hidden>🏆</span>
               <span className="pointer-events-none absolute inset-0 ring-2 ring-red-500/60 animate-pulse" aria-hidden />
               <span className="pointer-events-none absolute top-6 left-2 w-1 h-1 rounded-full bg-red-400 animate-ping" aria-hidden />
               <span className="pointer-events-none absolute top-12 right-2 w-1 h-1 rounded-full bg-red-500 animate-ping [animation-delay:0.3s]" aria-hidden />
@@ -364,9 +366,45 @@ export default function ChatAnalyzer() {
               <span className="pointer-events-none absolute bottom-20 left-2 w-1 h-1 rounded-full bg-red-500 animate-ping [animation-delay:1.2s]" aria-hidden />
             </>
           )}
-          <span className={`text-[10px] font-bold uppercase tracking-wide relative ${comprehensionPercent === 100 ? 'text-red-600 dark:text-red-300 mt-5' : 'text-muted-foreground'
-            }`}>Comprehension</span>
-          <span className={`text-sm font-bold tabular-nums relative ${comprehensionPercent === 100 ? 'text-red-600 dark:text-red-300 text-base' : 'text-foreground'
+          {/* Animated comprehension badge — spinning gradient ring + glowing pulsing brain.
+              At 100% it turns gold and celebrates (faster spin, scaling bounce, mastery sparkle). */}
+          <div className={`relative w-12 h-12 flex items-center justify-center shrink-0 transition-transform duration-500 ${comprehensionPercent === 100 ? 'mt-5 scale-110' : ''}`} aria-label="Comprehension" title="Comprehension">
+            {/* rotating conic gradient ring — red while learning, gold at mastery */}
+            <span
+              className={`absolute inset-0 rounded-full animate-spin ${comprehensionPercent === 100 ? '[animation-duration:1.2s]' : '[animation-duration:3s]'}`}
+              style={{
+                background: comprehensionPercent === 100
+                  ? 'conic-gradient(from 0deg, #f59e0b, #fde68a, #fbbf24, #f59e0b)'
+                  : 'conic-gradient(from 0deg, #ef4444, #fca5a5, transparent 60%, #ef4444)',
+              }}
+              aria-hidden
+            />
+            {/* inner mask so only the ring edge shows */}
+            <span className="absolute inset-[3px] rounded-full bg-card" aria-hidden />
+            {/* soft pulsing glow */}
+            <span className={`absolute inset-0 rounded-full blur-md animate-pulse ${comprehensionPercent === 100 ? 'bg-amber-400/50' : 'bg-red-500/30'}`} aria-hidden />
+            {/* counter-rotating sparkle accents */}
+            <span className={`absolute inset-0 animate-spin [animation-direction:reverse] ${comprehensionPercent === 100 ? '[animation-duration:2.5s]' : '[animation-duration:6s]'}`} aria-hidden>
+              <span className={`absolute top-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full ${comprehensionPercent === 100 ? 'bg-amber-300' : 'bg-red-400'}`} />
+              <span className={`absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full ${comprehensionPercent === 100 ? 'bg-yellow-200' : 'bg-red-300'}`} />
+              {comprehensionPercent === 100 && (
+                <>
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full bg-amber-200" />
+                  <span className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full bg-yellow-300" />
+                </>
+              )}
+            </span>
+            {/* brain icon — breathing while learning, bouncing star-burst at mastery */}
+            {comprehensionPercent === 100 ? (
+              <Brain className="relative w-5 h-5 text-amber-500 animate-bounce drop-shadow-[0_0_10px_rgba(245,158,11,0.9)]" />
+            ) : (
+              <Brain className="relative w-5 h-5 text-red-600 dark:text-red-400 animate-[pulse_1.6s_ease-in-out_infinite] drop-shadow-[0_0_6px_rgba(239,68,68,0.6)]" />
+            )}
+          </div>
+          <span
+            onClick={() => setPreviewMax((v) => !v)}
+            title="TEMP: click to preview 100% celebration"
+            className={`text-sm font-bold tabular-nums relative cursor-pointer select-none ${comprehensionPercent === 100 ? 'text-red-600 dark:text-red-300 text-base' : 'text-foreground'
             }`}>{comprehensionPercent}%</span>
           <div className={`relative w-3 flex-1 rounded-full overflow-hidden border ${comprehensionPercent === 100
               ? 'bg-red-100 dark:bg-red-950/60 border-red-300 dark:border-red-700 shadow-[0_0_12px_rgba(220,38,38,0.6)]'
